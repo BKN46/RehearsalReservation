@@ -132,7 +132,7 @@ export default {
     
     getReservationStyle(reservation, currentHour) {
       const duration = reservation.end_hour - reservation.start_hour
-      const cellHeight = 25 // 与CSS中.schedule-cell的height一致
+      const cellHeight = 26 // 与CSS中.schedule-cell的height一致
       
       let backgroundColor = '#4eb8fe' // 默认蓝色
       if (reservation.key_returned) {
