@@ -160,7 +160,13 @@
       </div>
       <template #footer>
         <el-button @click="showDetailDialog = false">关闭</el-button>
-        <el-button type="primary" @click="handleBorrowFromDetail">借用设备</el-button>
+        <el-button 
+          v-if="selectedEquipment?.is_shared" 
+          type="primary" 
+          @click="handleBorrowFromDetail"
+        >
+          借用设备
+        </el-button>
       </template>
     </el-dialog>
   </div>

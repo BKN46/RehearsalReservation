@@ -1,16 +1,12 @@
 <template>
   <div class="home">
-    <el-row :gutter="isMobile ? 10 : 20">
-      <el-col :span="24">
-        <el-card class="campus-card">
-          <el-radio-group v-model="selectedCampusId" @change="handleCampusChange" :size="isMobile ? 'small' : 'default'">
-            <el-radio-button v-for="campus in campuses" :key="campus.id" :label="campus.id">
-              {{ campus.name }}
-            </el-radio-button>
-          </el-radio-group>
-        </el-card>
-      </el-col>
-    </el-row>
+    <!-- 校区选择器 -->
+    <CampusSelector
+      :campuses="campuses"
+      v-model:selectedCampusId="selectedCampusId"
+      :isMobile="isMobile"
+      @change="handleCampusChange"
+    />
 
     <el-row :gutter="isMobile ? 10 : 20" style="margin-top: 12px">
       <el-col :xs="24" :sm="24" :md="16" :lg="16">
@@ -31,192 +27,44 @@
               </el-button>
             </div>
           </template>
-          <div class="schedule-table-wrapper" v-loading="loading">
-            <div class="schedule-container">
-              <!-- 表头 -->
-              <div class="schedule-header">
-                <div class="header-corner"></div>
-                <div class="header-days">
-                  <div v-for="day in weekDays" :key="day.date" class="header-day">
-                    <div class="day-name">{{ day.dayName }}</div>
-                    <div class="day-date">{{ day.dateText }}</div>
-                  </div>
-                </div>
-              </div>
-              
-              <!-- 时间行 -->
-              <div class="schedule-body">
-                <!-- 第一个时间标签 - 在表格开始前 -->
-                <div class="first-time-label">{{ timeSlots[0] }}:00</div>
-                
-                <div v-for="(hour, index) in timeSlots" :key="hour" class="time-row">
-                  <!-- 时间标签 - 放在框线上（除了第一个） -->
-                  <div class="time-label" v-if="index > 0 && index < timeSlots.length">
-                    {{ hour }}:00
-                  </div>
-                  
-                  <!-- 内容单元格 -->
-                  <div class="row-cells">
-                    <div 
-                      v-for="day in weekDays" 
-                      :key="day.date" 
-                      class="schedule-cell"
-                      :class="{ 
-                        'last-row': index === timeSlots.length - 1,
-                        'break-time': hour === 12 || hour === 18,
-                        'unavailable-cell': getUnavailableForCell(day.date, hour)
-                      }"
-                    >
-                      <!-- 不可预约时间段标记 -->
-                      <div 
-                        v-if="getUnavailableForCell(day.date, hour)"
-                        class="unavailable-block"
-                        :title="getUnavailableForCell(day.date, hour).reason || '不可预约'"
-                      >
-                        <div class="unavailable-content">
-                          <!-- <div class="unavailable-icon">🚫</div> -->
-                          <div class="unavailable-reason" v-if="!isMobile">
-                            {{ getUnavailableForCell(day.date, hour).reason || '不可预约' }}
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <!-- 预约信息块 -->
-                      <div 
-                        v-for="reservation in getReservationsForCell(day.date, hour)" 
-                        :key="reservation.id"
-                        class="reservation-block"
-                        :style="getReservationStyle(reservation, hour)"
-                        @click="showReservationDetail(reservation)"
-                      >
-                        <div class="reservation-content">
-                          <div class="user-name">{{ reservation.user_name }}</div>
-                          <div class="time-info" v-if="!isMobile">{{ reservation.start_hour }}-{{ reservation.end_hour }}</div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                <!-- 最后的时间标签 - 在表格结束后 -->
-                <div class="last-time-label">{{ timeSlots[timeSlots.length - 1] + 1 }}:00</div>
-              </div>
-            </div>
-          </div>
+          
+          <!-- 周计划表 -->
+          <WeeklySchedule
+            :weekDays="weekDays"
+            :timeSlots="timeSlots"
+            :weeklyReservations="weeklyReservations"
+            :unavailableTimes="unavailableTimes"
+            :loading="loading"
+            :weekRange="weekRange"
+            :isMobile="isMobile"
+            @reservation-click="showReservationDetail"
+          />
         </el-card>
       </el-col>
 
       <el-col :xs="24" :sm="24" :md="8" :lg="8" class="sidebar-col">
-        <el-card class="manager-card" style="margin-bottom: 12px">
-          <template #header>
-            <div class="card-header">
-              <span>钥匙管理员</span>
-            </div>
-          </template>
-          <div v-if="keyManagers.length > 0">
-            <div v-for="manager in keyManagers" :key="manager.id" class="manager-item">
-              <strong>{{ manager.name }}</strong>
-              <span class="manager-contact">{{ manager.contact }}</span>
-            </div>
-          </div>
-          <el-empty v-else description="暂无钥匙管理员" :image-size="60" />
-        </el-card>
-
-        <el-card class="pickup-card">
-          <template #header>
-            <div class="card-header">
-              <span>已领取钥匙</span>
-            </div>
-          </template>
-          <el-timeline v-if="activeKeyPickups.length > 0">
-            <el-timeline-item
-              v-for="pickup in activeKeyPickups"
-              :key="pickup.id"
-              :timestamp="formatTime(pickup.key_pickup_time)"
-            >
-              {{ pickup.user_name }} - {{ pickup.date }} {{ pickup.start_hour }}:00-{{ pickup.end_hour }}:00
-            </el-timeline-item>
-          </el-timeline>
-          <el-empty v-else description="暂无已领取钥匙" :image-size="60" />
-        </el-card>
+        <!-- 钥匙管理员 -->
+        <KeyManagers :keyManagers="keyManagers" style="margin-bottom: 12px" />
+        
+        <!-- 已领取钥匙 -->
+        <KeyPickups :activeKeyPickups="activeKeyPickups" />
       </el-col>
     </el-row>
 
-    <!-- 预约提示对话框 -->
-    <el-dialog 
-      v-model="showReminderDialog" 
-      title="预约须知" 
-      :width="isMobile ? '90%' : '400px'"
-      :fullscreen="isMobile"
-      center
-    >
-      <div style="text-align: center; padding: 20px 0;">
-        <el-icon :size="60" color="#E6A23C" style="margin-bottom: 20px;">
-          <WarningFilled />
-        </el-icon>
-        <p style="font-size: 16px; line-height: 1.8; color: #606266;">
-          请维护好排练室内卫生，使用完毕<b style="color:red">物归原位</b><br/>
-          把琴房的中间部分空出来，线材理顺<br/>
-          使用设备请联系物主，损坏设备会查监控要求照价赔偿<br/>
-          门口有扫把拖把垃圾袋垃圾桶，请<b style="color:red">自觉清理并带走垃圾</b><br/>
-          违反规则可能会得到“特别关照”
-        </p>
-      </div>
-      <template #footer>
-        <el-button type="primary" @click="handleAcknowledgeReminder" size="large" style="width: 100%;">
-          我已知晓
-        </el-button>
-      </template>
-    </el-dialog>
-
-    <!-- 新建预约对话框 -->
-    <el-dialog 
-      v-model="showReserveDialog" 
-      title="新建预约" 
-      :width="isMobile ? '90%' : '500px'"
-      :fullscreen="isMobile"
-    >
-      <el-alert 
-        v-if="userWeeklyHours !== null"
-        :title="`本周已预约 ${userWeeklyHours} 小时，还可预约 ${6 - userWeeklyHours} 小时`"
-        :type="weeklyQuotaType"
-        :closable="false"
-        style="margin-bottom: 15px"
-      />
-      <el-form :model="reserveForm" label-width="100px">
-        <el-form-item label="日期">
-          <el-date-picker
-            v-model="reserveForm.date"
-            type="date"
-            placeholder="选择日期"
-            :disabled-date="disabledDate"
-            style="width: 100%"
-          />
-        </el-form-item>
-        <!-- <el-form-item label="时间段">
-          <el-select v-model="reserveForm.timeSlot" placeholder="请选择时间段" style="width: 100%">
-            <el-option label="上午 8:00-12:00" value="morning" />
-            <el-option label="下午 13:00-18:00" value="afternoon" />
-            <el-option label="晚上 19:00-22:00" value="evening" />
-          </el-select>
-        </el-form-item> -->
-        <el-form-item label="时间段">
-          <el-row :gutter="10">
-            <el-col :span="12">
-              <el-input-number v-model="reserveForm.start_hour" :min="8" :max="21" placeholder="开始" />
-            </el-col>
-            <el-col :span="12">
-              <el-input-number v-model="reserveForm.end_hour" :min="9" :max="22" placeholder="结束" />
-            </el-col>
-          </el-row>
-          <small style="color: #999">可预约时间：8:00-12:00, 13:00-18:00, 19:00-22:00</small>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="showReserveDialog = false">取消</el-button>
-        <el-button type="primary" @click="handleReserve" :loading="reserving">确定</el-button>
-      </template>
-    </el-dialog>
+    <!-- 预约对话框 -->
+    <ReservationDialog
+      v-model:showReminderDialog="showReminderDialog"
+      v-model:showReserveDialog="showReserveDialog"
+      :isMobile="isMobile"
+      :userWeeklyHours="userWeeklyHours"
+      :dailyReservations="dailyReservations"
+      :dailyUnavailableTimes="dailyUnavailableTimes"
+      :reserving="reserving"
+      @acknowledge="handleAcknowledgeReminder"
+      @reserve="handleReserveSubmit"
+      @close="showReserveDialog = false"
+      @date-change="loadDailySchedule"
+    />
   </div>
 </template>
 
@@ -224,13 +72,21 @@
 import { ref, onMounted, computed, onUnmounted, watch } from 'vue'
 import { reservationService, keyService, adminService } from '@/services/api'
 import { ElMessage } from 'element-plus'
-import { WarningFilled } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
+import CampusSelector from '@/components/home/CampusSelector.vue'
+import WeeklySchedule from '@/components/home/WeeklySchedule.vue'
+import KeyManagers from '@/components/home/KeyManagers.vue'
+import KeyPickups from '@/components/home/KeyPickups.vue'
+import ReservationDialog from '@/components/home/ReservationDialog.vue'
 
 export default {
   name: 'Home',
   components: {
-    WarningFilled
+    CampusSelector,
+    WeeklySchedule,
+    KeyManagers,
+    KeyPickups,
+    ReservationDialog
   },
   setup() {
     const authStore = useAuthStore()
@@ -249,20 +105,11 @@ export default {
     const isMobile = ref(false)
     const userWeeklyHours = ref(null)
 
-    const reserveForm = ref({
-      date: null,
-      timeSlot: '',
-      start_hour: 8,
-      end_hour: 12
-    })
+    // 当天的预约和不可预约时间（用于预约对话框）
+    const dailyReservations = ref([])
+    const dailyUnavailableTimes = ref([])
 
-    const timeSlots = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]
-    
-    const predefinedTimeSlots = {
-      morning: { start: 8, end: 12 },
-      afternoon: { start: 13, end: 18 },
-      evening: { start: 19, end: 22 }
-    }
+    const timeSlots = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]
 
     // 检测屏幕尺寸
     const checkMobile = () => {
@@ -308,41 +155,6 @@ export default {
       return days
     })
 
-    // 获取某个单元格的预约信息
-    const getReservationsForCell = (date, hour) => {
-      return weeklyReservations.value.filter(reservation => {
-        return reservation.date === date && 
-               reservation.start_hour <= hour && 
-               reservation.end_hour > hour
-      })
-    }
-
-    // 检查某个单元格是否为不可预约时间段
-    const getUnavailableForCell = (date, hour) => {
-      // 将日期字符串转为Date对象
-      const dateObj = new Date(date)
-      const dayOfWeek = (dateObj.getDay()) // 0=周日, 1=周一, ..., 6=周六
-      
-      // 查找匹配的不可预约时间段
-      return unavailableTimes.value.find(ut => {
-        // 检查时间是否在范围内
-        const inTimeRange = ut.start_hour <= hour && ut.end_hour > hour
-        if (!inTimeRange) return false
-        
-        // 检查日期条件
-        if (ut.date) {
-          // 特定日期
-          return ut.date === date
-        } else if (ut.day_of_week !== null) {
-          // 固定周几
-          return ut.day_of_week === dayOfWeek
-        } else {
-          // 所有日期
-          return true
-        }
-      })
-    }
-
     // 计算本周配额类型（用于标签颜色）
     const weeklyQuotaType = computed(() => {
       if (userWeeklyHours.value === null) return 'info'
@@ -358,77 +170,6 @@ export default {
       )
     })
 
-    // 根据用户名生成一致的颜色
-    const getUserColor = (userName) => {
-      // 简单的字符串哈希函数
-      let hash = 0
-      for (let i = 0; i < userName.length; i++) {
-        hash = userName.charCodeAt(i) + ((hash << 5) - hash)
-        hash = hash & hash // 转换为32位整数
-      }
-      
-      // 预定义的纯色方案（柔和且易区分）
-      const colors = [
-        // '#7c7cde', // 紫色
-        // '#f279a1', // 粉红
-        '#4eb8fe', // 蓝色
-        // '#3ee8a9', // 青绿
-        // '#f5a071', // 橙色
-        // '#5099d0', // 青蓝
-        // '#b9e5e8', // 薄荷
-        // '#ff8476', // 橙粉
-        // '#c7b5ec', // 淡紫
-        // '#f4daf0', // 淡粉
-        // '#b6d8fc', // 淡蓝
-        // '#ffd5b8', // 橙黄
-        // '#d3a5c8', // 紫粉
-        // '#b8d8fc', // 蓝紫
-        // '#f68389', // 红粉
-        // '#e4a8bc', // 玫粉
-      ]
-      
-      // 使用哈希值选择颜色
-      const index = Math.abs(hash) % colors.length
-      return colors[index]
-    }
-
-    // 计算预约块的样式
-    const getReservationStyle = (reservation, hour) => {
-      if (reservation.start_hour === hour) {
-        const duration = reservation.end_hour - reservation.start_hour
-        // 根据屏幕尺寸动态计算单元格高度（与CSS一致）
-        let cellHeight = 35 // 移动端默认
-        if (window.innerWidth <= 375) {
-          cellHeight = 30 // 小屏手机
-        } else if (window.innerWidth >= 1200) {
-          cellHeight = 35 // 桌面端
-        } else if (window.innerWidth >= 769) {
-          cellHeight = 40 // 平板端
-        }
-        
-        // 获取用户专属颜色
-        let background
-        if (reservation.key_returned) {
-          background = '#9e9e9e' // 已归还钥匙：灰色
-        } else if (reservation.key_picked_up) {
-          background = '#2ac98d' // 已取钥匙：绿色
-        } else {
-          background = getUserColor(reservation.user_name) // 用户专属颜色
-        }
-        
-        return {
-          height: `${duration * cellHeight}px`,
-          background: background,
-          position: 'absolute',
-          top: '0',
-          left: '2px',
-          right: '2px',
-          zIndex: 1
-        }
-      }
-      return { display: 'none' }
-    }
-
     // 显示预约详情
     const showReservationDetail = (reservation) => {
       let keyStatus = '✗ 未领取钥匙'
@@ -442,43 +183,6 @@ export default {
         message: `${reservation.user_name} (${reservation.student_id})\n${reservation.start_hour}:00-${reservation.end_hour}:00\n${keyStatus}`,
         duration: 3000
       })
-    }
-
-    const disabledDate = (time) => {
-      const now = new Date()
-      const currentHour = now.getHours()
-      const dayOfWeek = now.getDay() // 0=周日, 1=周一, ..., 6=周六
-      
-      // 计算上周日22:00
-      let lastSunday = new Date(now)
-      const daysToLastSunday = dayOfWeek === 0 ? 7 : dayOfWeek
-      lastSunday.setDate(now.getDate() - daysToLastSunday)
-      lastSunday.setHours(22, 0, 0, 0)
-      
-      // 如果当前是周日22:00之后，则上周日应该是今天
-      if (dayOfWeek === 0 && currentHour >= 22) {
-        lastSunday = new Date(now)
-        lastSunday.setHours(22, 0, 0, 0)
-      }
-      
-      // 计算本周日22:00
-      let thisSunday = new Date(now)
-      const daysToThisSunday = dayOfWeek === 0 ? 0 : 7 - dayOfWeek
-      thisSunday.setDate(now.getDate() + daysToThisSunday)
-      thisSunday.setHours(22, 0, 0, 0)
-      
-      // 如果当前是周日22:00之后，本周日应该是下周日
-      if (dayOfWeek === 0 && currentHour >= 22) {
-        thisSunday.setDate(thisSunday.getDate() + 7)
-      }
-      
-      // 禁用上周日22:00之前和本周日22:00之后的日期
-      const timeValue = time.getTime()
-      return timeValue < lastSunday.getTime() || timeValue > thisSunday.getTime()
-    }
-
-    const formatTime = (timeStr) => {
-      return new Date(timeStr).toLocaleString('zh-CN')
     }
 
     const loadCampuses = async () => {
@@ -604,19 +308,49 @@ export default {
       showReserveDialog.value = true
     }
 
-    const handleReserve = async () => {
-      if (!reserveForm.value.date) {
+    const loadDailySchedule = async (date) => {
+      if (!date || !selectedCampusId.value) return
+
+      try {
+        const targetDate = new Date(date)
+        const year = targetDate.getFullYear()
+        const month = String(targetDate.getMonth() + 1).padStart(2, '0')
+        const day = String(targetDate.getDate()).padStart(2, '0')
+        const dateStr = `${year}-${month}-${day}`
+
+        // 加载当天的预约
+        const reservations = await reservationService.getReservationsByDate(selectedCampusId.value, dateStr)
+        dailyReservations.value = reservations.filter(r => r.status === 'active')
+
+        // 过滤出当天的不可预约时间
+        const dayOfWeek = targetDate.getDay()
+        dailyUnavailableTimes.value = unavailableTimes.value.filter(ut => {
+          if (ut.date === dateStr) return true
+          if (!ut.date) {
+            // 如果day_of_week为空，表示每天都不可预约
+            if (ut.day_of_week === null || ut.day_of_week === undefined) return true
+            // 否则检查是否匹配当天
+            return Number(ut.day_of_week) === dayOfWeek
+          }
+          return false
+        })
+      } catch (error) {
+        console.error('Failed to load daily schedule:', error)
+      }
+    }
+
+    const handleReserveSubmit = async (formData) => {
+      if (!formData.date) {
         ElMessage.warning('请选择日期')
         return
       }
 
-      let startHour = reserveForm.value.start_hour
-      let endHour = reserveForm.value.end_hour
+      let startHour = formData.start_hour
+      let endHour = formData.end_hour
 
-      if (reserveForm.value.timeSlot) {
-        const slot = predefinedTimeSlots[reserveForm.value.timeSlot]
-        startHour = slot.start
-        endHour = slot.end
+      if (startHour === null || endHour === null) {
+        ElMessage.warning('请选择时间段')
+        return
       }
 
       if (startHour >= endHour) {
@@ -626,7 +360,7 @@ export default {
 
       reserving.value = true
       try {
-        const date = new Date(reserveForm.value.date)
+        const date = new Date(formData.date)
         // 使用本地时区格式化日期，避免UTC偏差
         const year = date.getFullYear()
         const month = String(date.getMonth() + 1).padStart(2, '0')
@@ -642,12 +376,8 @@ export default {
 
         ElMessage.success('预约成功')
         showReserveDialog.value = false
-        reserveForm.value = {
-          date: null,
-          timeSlot: '',
-          start_hour: 8,
-          end_hour: 12
-        }
+        dailyReservations.value = []
+        dailyUnavailableTimes.value = []
         loadWeeklyReservations()
         loadMyWeeklyHours()  // 重新加载本周预约统计
       } catch (error) {
@@ -669,31 +399,34 @@ export default {
     })
 
     return {
+      // 数据
       campuses,
       selectedCampusId,
       weeklyReservations,
+      unavailableTimes,
       keyManagers,
       keyPickups,
       loading,
       showReminderDialog,
       showReserveDialog,
       reserving,
-      reserveForm,
+      dailyReservations,
+      dailyUnavailableTimes,
       weekRange,
       timeSlots,
       weekDays,
       isMobile,
       userWeeklyHours,
+      
+      // 计算属性
       weeklyQuotaType,
       activeKeyPickups,
-      disabledDate,
-      formatTime,
+      
+      // 方法
       handleCampusChange,
       handleAcknowledgeReminder,
-      handleReserve,
-      getReservationsForCell,
-      getUnavailableForCell,
-      getReservationStyle,
+      loadDailySchedule,
+      handleReserveSubmit,
       showReservationDetail
     }
   }
@@ -766,14 +499,6 @@ export default {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-}
-
-/* 课程表样式 - 重新设计 */
-.schedule-table-wrapper {
-  overflow-x: hidden;
-  overflow-y: auto;
-  max-height: 700px;
-  -webkit-overflow-scrolling: touch;
 }
 
 .schedule-container {
@@ -892,35 +617,6 @@ export default {
   width: 100%;
   padding-left: 35px;
   border-top: 1px solid #e4e7ed;
-}
-
-/* 单个时间格 */
-.schedule-cell {
-  flex: 1;
-  height: 35px;
-  border-right: 1px solid #e4e7ed;
-  position: relative;
-  background-color: #fff;
-  min-width: 0;
-}
-
-.schedule-cell:last-child {
-  border-right: none;
-}
-
-.schedule-cell.last-row {
-  border-bottom: 1px solid #e4e7ed;
-}
-
-/* 休息时间段（12:00-13:00, 18:00-19:00）变灰 */
-.schedule-cell.break-time {
-  background-color: #f5f7fa;
-}
-
-/* 不可预约时间段 */
-.schedule-cell.unavailable-cell {
-  background-color: #fef0f0;
-  position: relative;
 }
 
 .unavailable-block {
@@ -1051,10 +747,6 @@ export default {
     padding-left: 50px;
   }
   
-  .schedule-cell {
-    height: 40px;
-  }
-  
   .reservation-block {
     font-size: 11px;
   }
@@ -1133,10 +825,6 @@ export default {
     padding-left: 60px;
   }
   
-  .schedule-cell {
-    height: 35px;
-  }
-  
   .reservation-block {
     font-size: 12px;
   }
@@ -1155,10 +843,6 @@ export default {
   
   .unavailable-reason {
     font-size: 11px;
-  }
-  
-  .schedule-table-wrapper {
-    max-height: 800px;
   }
 }
 
@@ -1211,10 +895,6 @@ export default {
     padding-left: 30px;
   }
   
-  .schedule-cell {
-    height: 30px;
-  }
-  
   .reservation-block {
     font-size: 8px;
   }
@@ -1227,4 +907,6 @@ export default {
     font-size: 7px;
   }
 }
+
+/* 时间块选择样式 */
 </style>
