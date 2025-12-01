@@ -44,16 +44,31 @@ def check_time_conflict(campus_id, date, start_hour, end_hour, exclude_id=None):
     return query.with_for_update().first() is not None
 
 def check_unavailable_time(campus_id, date, start_hour, end_hour):
-    """检查是否在不可预约时间段内"""
+    """检查是否在不可预约时间段内，返回(是否不可用, 原因)"""
+    # 获取星期几 (0=周一, 6=周日) -> 转换为 (0=周日, 1=周一, ..., 6=周六)
+    day_of_week = (date.weekday() + 1) % 7
+    
+    # 检查三种类型的不可预约时间：
+    # 1. 特定日期
+    # 2. 固定周几
+    # 3. 所有日期
     unavailable = UnavailableTime.query.filter(
         UnavailableTime.campus_id == campus_id,
-        UnavailableTime.date == date,
+        or_(
+            UnavailableTime.date == date,  # 特定日期
+            UnavailableTime.day_of_week == day_of_week,  # 固定周几
+            and_(UnavailableTime.date.is_(None), UnavailableTime.day_of_week.is_(None))  # 所有日期
+        ),
         or_(
             and_(UnavailableTime.start_hour < end_hour, UnavailableTime.end_hour > start_hour)
         )
     ).first()
     
-    return unavailable is not None
+    if unavailable:
+        reason = unavailable.reason if unavailable.reason else '该时间段不可预约'
+        return True, reason
+    
+    return False, None
 
 @reservation_bp.route('/campuses', methods=['GET'])
 def get_campuses():
@@ -67,6 +82,11 @@ def create_reservation():
     """创建预约（处理并发）"""
     user_id = int(get_jwt_identity())
     data = request.get_json()
+    
+    # 检查用户是否被禁用
+    user = User.query.get(user_id)
+    if not user or not user.is_active:
+        return jsonify({'error': 'Account is disabled. Please contact administrator.'}), 403
     
     # 验证必填字段
     required_fields = ['campus_id', 'date', 'start_hour', 'end_hour']
@@ -90,17 +110,55 @@ def create_reservation():
     except ValueError:
         return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD'}), 400
     
-    # 检查是否为过去日期
-    if reservation_date < date.today():
-        return jsonify({'error': 'Cannot reserve past dates'}), 400
+    # 计算预约窗口：上周日22:00至本周日22:00
+    now = datetime.now()
+    current_hour = now.hour
+    day_of_week = now.weekday()  # 0=周一, 6=周日
+    today = now.date()
     
-    # 检查是否超过一周
-    if reservation_date > date.today() + timedelta(days=7):
-        return jsonify({'error': 'Cannot reserve more than one week in advance'}), 400
+    # 计算上周日
+    days_to_last_sunday = day_of_week + 1 if day_of_week < 6 else 0
+    last_sunday = today - timedelta(days=days_to_last_sunday)
+    
+    # 如果当前是周日且时间>=22:00，上周日就是今天
+    if day_of_week == 6 and current_hour >= 22:
+        last_sunday = today
+    
+    # 计算本周日
+    days_to_this_sunday = 6 - day_of_week if day_of_week < 6 else 0
+    this_sunday = today + timedelta(days=days_to_this_sunday)
+    
+    # 如果当前是周日且时间>=22:00，本周日就是下周日
+    if day_of_week == 6 and current_hour >= 22:
+        this_sunday = today + timedelta(days=7)
+    
+    # 检查预约日期是否在窗口内（上周日22:00之后，本周日22:00之前）
+    # 简化为日期检查：必须在上周日（含）到本周日（含）之间
+    if reservation_date < last_sunday or reservation_date > this_sunday:
+        return jsonify({
+            'error': f'Reservation date must be between {last_sunday.isoformat()} and {this_sunday.isoformat()}'
+        }), 400
     
     # 验证时间段
     if not validate_time_slot(start_hour, end_hour):
         return jsonify({'error': 'Invalid time slot'}), 400
+    
+    # 检查本周预约时长限制（6小时）
+    # 使用与窗口相同的逻辑：上周日到本周日
+    weekly_reservations = Reservation.query.filter(
+        Reservation.user_id == user_id,
+        Reservation.date >= last_sunday,
+        Reservation.date <= this_sunday,
+        Reservation.status == 'active'
+    ).all()
+    
+    total_hours = sum(r.end_hour - r.start_hour for r in weekly_reservations)
+    new_hours = end_hour - start_hour
+    
+    if total_hours + new_hours > 6:
+        return jsonify({
+            'error': f'Weekly reservation limit exceeded. You have used {total_hours} hours this week. Limit is 6 hours.'
+        }), 400
     
     # 使用事务和锁处理并发
     try:
@@ -108,9 +166,10 @@ def create_reservation():
         db.session.begin_nested()
         
         # 检查不可预约时间段
-        if check_unavailable_time(campus_id, reservation_date, start_hour, end_hour):
+        is_unavailable, unavailable_reason = check_unavailable_time(campus_id, reservation_date, start_hour, end_hour)
+        if is_unavailable:
             db.session.rollback()
-            return jsonify({'error': 'This time slot is unavailable'}), 400
+            return jsonify({'error': f'该时间段不可预约：{unavailable_reason}'}), 400
         
         # 检查时间冲突（带锁）
         if check_time_conflict(campus_id, reservation_date, start_hour, end_hour):
@@ -153,15 +212,28 @@ def get_my_reservations():
 
 @reservation_bp.route('/weekly', methods=['GET'])
 def get_weekly_reservations():
-    """获取本周预约情况"""
+    """获取本周预约情况（周日22:00后显示下周）"""
     campus_id = request.args.get('campus_id', type=int)
     
     if not campus_id:
         return jsonify({'error': 'campus_id is required'}), 400
     
-    # 获取本周的开始和结束日期
-    today = date.today()
-    start_of_week = today - timedelta(days=today.weekday())
+    # 获取当前时间
+    now = datetime.now()
+    current_hour = now.hour
+    day_of_week = now.weekday()  # 0=周一, 6=周日
+    
+    # 计算本周的开始和结束日期
+    today = now.date()
+    
+    # 如果是周日(6)且时间>=22:00，显示下周
+    if day_of_week == 6 and current_hour >= 22:
+        # 跳到下周一
+        start_of_week = today + timedelta(days=1)
+    else:
+        # 本周一
+        start_of_week = today - timedelta(days=day_of_week)
+    
     end_of_week = start_of_week + timedelta(days=6)
     
     reservations = Reservation.query.filter(

@@ -38,6 +38,11 @@ export const keyService = {
     return api.post(`/key/pickup/${reservationId}`)
   },
 
+  // 登记归还钥匙
+  returnKey(reservationId) {
+    return api.post(`/key/return/${reservationId}`)
+  },
+
   // 获取钥匙领取情况
   getKeyPickups(campusId) {
     return api.get('/key/pickups', { params: { campus_id: campusId } })
@@ -137,13 +142,28 @@ export const adminService = {
     return api.delete(`/admin/key-managers/${id}`)
   },
 
-  // 获取所有用户
-  getAllUsers() {
-    return api.get('/admin/users')
+  // 获取所有用户（支持筛选）
+  getAllUsers(params) {
+    return api.get('/admin/users', { params })
   },
 
   // 启用/禁用用户
   toggleUserActive(userId) {
     return api.put(`/admin/users/${userId}/toggle-active`)
+  },
+
+  // 年度重置用户
+  annualResetUsers() {
+    return api.post('/admin/users/annual-reset')
+  },
+
+  // 批量激活用户
+  batchActivateUsers(userIds) {
+    return api.post('/admin/users/batch-activate', { user_ids: userIds })
+  },
+
+  // 获取历史预约记录
+  getReservationHistory(params) {
+    return api.get('/admin/reservations', { params })
   }
 }

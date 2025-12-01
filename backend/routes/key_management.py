@@ -41,6 +41,46 @@ def pickup_key(reservation_id):
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
+@key_bp.route('/return/<int:reservation_id>', methods=['POST'])
+@jwt_required()
+def return_key(reservation_id):
+    """登记归还钥匙"""
+    user_id = int(get_jwt_identity())
+    
+    reservation = Reservation.query.get(reservation_id)
+    
+    if not reservation:
+        return jsonify({'error': 'Reservation not found'}), 404
+    
+    # 只有预约用户可以登记
+    if reservation.user_id != user_id:
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    # 检查预约是否有效
+    if reservation.status != 'active':
+        return jsonify({'error': 'Reservation is not active'}), 400
+    
+    # 检查是否已领取钥匙
+    if not reservation.key_picked_up:
+        return jsonify({'error': 'Key has not been picked up yet'}), 400
+    
+    # 检查是否已经归还
+    if reservation.key_returned:
+        return jsonify({'error': 'Key already returned'}), 400
+    
+    try:
+        reservation.key_returned = True
+        reservation.key_return_time = datetime.utcnow()
+        db.session.commit()
+        
+        return jsonify({
+            'message': 'Key return registered successfully',
+            'reservation': reservation.to_dict()
+        }), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
 @key_bp.route('/pickups', methods=['GET'])
 def get_key_pickups():
     """获取钥匙领取情况"""

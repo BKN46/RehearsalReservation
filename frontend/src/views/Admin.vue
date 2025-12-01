@@ -4,31 +4,57 @@
       <!-- 用户管理 -->
       <el-tab-pane label="用户管理" name="users">
         <el-card>
+          <template #header>
+            <div class="card-header">
+              <span>用户管理</span>
+              <div class="filter-section">
+                <el-select 
+                  v-model="userFilters.is_active" 
+                  placeholder="状态" 
+                  clearable
+                  @change="loadUsers"
+                  style="width: 120px; margin-right: 10px"
+                >
+                  <el-option label="启用" value="true" />
+                  <el-option label="禁用" value="false" />
+                </el-select>
+                
+                <el-select 
+                  v-model="userFilters.year" 
+                  placeholder="入学年份" 
+                  clearable
+                  @change="loadUsers"
+                  style="width: 120px; margin-right: 10px"
+                >
+                  <el-option 
+                    v-for="year in enrollmentYears" 
+                    :key="year" 
+                    :label="`${year}级`" 
+                    :value="year" 
+                  />
+                </el-select>
+                
+                <el-input 
+                  v-model="userFilters.search" 
+                  placeholder="搜索姓名" 
+                  clearable
+                  @input="handleSearchUsers"
+                  style="width: 200px; margin-right: 10px"
+                  @keyup.enter="loadUsers"
+                >
+                  <template #prefix>
+                    <el-icon><Search /></el-icon>
+                  </template>
+                </el-input>
+
+                <el-button type="primary" @click="loadUsers" style="margin-right: 10px">搜索</el-button>
+                <el-button type="danger" @click="handleAnnualReset">年度重置</el-button>
+              </div>
+            </div>
+          </template>
+
           <el-table :data="users" style="width: 100%" v-loading="loadingUsers">
-            <el-table-column prop="student_id" label="学号" width="120" />
-            <el-table-column prop="name" label="姓名" width="100" />
-            <el-table-column prop="email" label="邮箱" width="200" />
-            <el-table-column prop="phone" label="手机号" width="120" />
-            <el-table-column prop="is_admin" label="管理员" width="80">
-              <template #default="{ row }">
-                <el-tag :type="row.is_admin ? 'danger' : 'info'" size="small">
-                  {{ row.is_admin ? '是' : '否' }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column prop="is_active" label="状态" width="80">
-              <template #default="{ row }">
-                <el-tag :type="row.is_active ? 'success' : 'danger'" size="small">
-                  {{ row.is_active ? '启用' : '禁用' }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column prop="created_at" label="注册时间" width="180">
-              <template #default="{ row }">
-                {{ formatTime(row.created_at) }}
-              </template>
-            </el-table-column>
-            <el-table-column label="操作" width="120">
+            <el-table-column label="操作" width="80">
               <template #default="{ row }">
                 <el-button
                   :type="row.is_active ? 'danger' : 'success'"
@@ -40,6 +66,30 @@
                 </el-button>
               </template>
             </el-table-column>
+            <el-table-column prop="is_active" label="状态" width="70">
+              <template #default="{ row }">
+                <el-tag :type="row.is_active ? 'success' : 'danger'" size="small">
+                  {{ row.is_active ? '启用' : '禁用' }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="name" label="姓名" width="100" />
+            <el-table-column prop="student_id" label="学号" width="120" />
+            <el-table-column prop="phone" label="手机号" width="120" />
+            <el-table-column prop="email" label="邮箱" width="200" />
+            <el-table-column prop="is_admin" label="管理员" width="80">
+              <template #default="{ row }">
+                <el-tag :type="row.is_admin ? 'danger' : 'info'" size="small">
+                  {{ row.is_admin ? '是' : '否' }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="created_at" label="注册时间" width="180">
+              <template #default="{ row }">
+                {{ formatTime(row.created_at) }}
+              </template>
+            </el-table-column>
+            
           </el-table>
         </el-card>
       </el-tab-pane>
@@ -56,8 +106,20 @@
 
           <el-table :data="unavailableTimes" style="width: 100%" v-loading="loadingUnavailable">
             <el-table-column prop="campus_name" label="校区" width="120" />
-            <el-table-column prop="date" label="日期" width="120" />
-            <el-table-column label="时间" width="180">
+            <el-table-column label="适用时间" width="150">
+              <template #default="{ row }">
+                <span v-if="row.day_of_week !== null">
+                  {{ getDayOfWeekText(row.day_of_week) }}
+                </span>
+                <span v-else-if="row.date">
+                  {{ row.date }}
+                </span>
+                <span v-else>
+                  所有日期
+                </span>
+              </template>
+            </el-table-column>
+            <el-table-column label="时间段" width="180">
               <template #default="{ row }">
                 {{ row.start_hour }}:00 - {{ row.end_hour }}:00
               </template>
@@ -118,17 +180,131 @@
           </el-table>
         </el-card>
       </el-tab-pane>
+
+      <!-- 历史预约记录 -->
+      <el-tab-pane label="历史预约记录" name="reservationHistory">
+        <el-card>
+          <div class="filter-section" style="margin-bottom: 20px;">
+            <el-row :gutter="20">
+              <el-col :span="6">
+                <el-input
+                  v-model="reservationFilters.userName"
+                  placeholder="搜索预约人"
+                  clearable
+                  @input="loadReservationHistory"
+                />
+              </el-col>
+              <el-col :span="6">
+                <el-select
+                  v-model="reservationFilters.campusId"
+                  placeholder="选择校区"
+                  clearable
+                  @change="loadReservationHistory"
+                  style="width: 100%"
+                >
+                  <el-option label="全部校区" :value="null" />
+                  <el-option
+                    v-for="campus in campuses"
+                    :key="campus.id"
+                    :label="campus.name"
+                    :value="campus.id"
+                  />
+                </el-select>
+              </el-col>
+              <el-col :span="12">
+                <el-date-picker
+                  v-model="reservationFilters.dateRange"
+                  type="daterange"
+                  range-separator="至"
+                  start-placeholder="开始日期"
+                  end-placeholder="结束日期"
+                  @change="loadReservationHistory"
+                  style="width: 100%"
+                />
+              </el-col>
+            </el-row>
+          </div>
+
+          <el-table
+            :data="reservationHistory"
+            v-loading="loadingReservations"
+            stripe
+            style="width: 100%"
+          >
+            <el-table-column prop="user_name" label="预约人" width="120" />
+            <el-table-column prop="campus_name" label="校区" width="100" />
+            <el-table-column prop="date" label="日期" width="120" />
+            <el-table-column label="时间段" width="150">
+              <template #default="scope">
+                {{ scope.row.start_hour }}:00 - {{ scope.row.end_hour }}:00
+              </template>
+            </el-table-column>
+            <el-table-column label="状态" width="100">
+              <template #default="scope">
+                <el-tag v-if="scope.row.status === 'active'" type="success">有效</el-tag>
+                <el-tag v-else-if="scope.row.status === 'cancelled'" type="info">已取消</el-tag>
+                <el-tag v-else type="warning">{{ scope.row.status }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="钥匙状态" width="120">
+              <template #default="scope">
+                <el-tag v-if="scope.row.key_returned" type="info">已归还</el-tag>
+                <el-tag v-else-if="scope.row.key_picked_up" type="success">已领取</el-tag>
+                <el-tag v-else type="warning">未领取</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="created_at" label="创建时间" width="180">
+              <template #default="scope">
+                {{ formatDateTime(scope.row.created_at) }}
+              </template>
+            </el-table-column>
+            <el-table-column prop="notes" label="备注" show-overflow-tooltip />
+          </el-table>
+
+          <el-pagination
+            :current-page="reservationPagination.page"
+            :page-size="reservationPagination.pageSize"
+            :page-sizes="[10, 20, 50, 100]"
+            :total="reservationPagination.total"
+            layout="total, sizes, prev, pager, next, jumper"
+            @size-change="handleReservationPageSizeChange"
+            @current-change="handleReservationPageChange"
+            style="margin-top: 20px; justify-content: center;"
+          />
+        </el-card>
+      </el-tab-pane>
     </el-tabs>
 
     <!-- 不可预约时间对话框 -->
     <el-dialog v-model="showUnavailableDialog" title="添加不可预约时间" width="500px">
-      <el-form :model="unavailableForm" label-width="100px">
+      <el-form :model="unavailableForm" label-width="120px">
         <el-form-item label="校区">
           <el-select v-model="unavailableForm.campus_id" placeholder="请选择校区" style="width: 100%">
             <el-option v-for="campus in campuses" :key="campus.id" :label="campus.name" :value="campus.id" />
           </el-select>
         </el-form-item>
-        <el-form-item label="日期">
+        
+        <el-form-item label="时间规则类型">
+          <el-radio-group v-model="unavailableForm.rule_type">
+            <el-radio label="weekday">固定周几</el-radio>
+            <el-radio label="all">所有日期</el-radio>
+            <el-radio label="specific">特定日期</el-radio>
+          </el-radio-group>
+        </el-form-item>
+        
+        <el-form-item label="周几" v-if="unavailableForm.rule_type === 'weekday'">
+          <el-select v-model="unavailableForm.day_of_week" placeholder="请选择周几" style="width: 100%">
+            <el-option label="周一" :value="1" />
+            <el-option label="周二" :value="2" />
+            <el-option label="周三" :value="3" />
+            <el-option label="周四" :value="4" />
+            <el-option label="周五" :value="5" />
+            <el-option label="周六" :value="6" />
+            <el-option label="周日" :value="0" />
+          </el-select>
+        </el-form-item>
+        
+        <el-form-item label="特定日期" v-if="unavailableForm.rule_type === 'specific'">
           <el-date-picker
             v-model="unavailableForm.date"
             type="date"
@@ -136,14 +312,24 @@
             style="width: 100%"
           />
         </el-form-item>
+        
         <el-form-item label="开始时间">
-          <el-input-number v-model="unavailableForm.start_hour" :min="8" :max="21" />
+          <el-input-number v-model="unavailableForm.start_hour" :min="0" :max="23" />
+          <span style="margin-left: 8px">:00</span>
         </el-form-item>
+        
         <el-form-item label="结束时间">
-          <el-input-number v-model="unavailableForm.end_hour" :min="9" :max="22" />
+          <el-input-number v-model="unavailableForm.end_hour" :min="1" :max="24" />
+          <span style="margin-left: 8px">:00</span>
         </el-form-item>
+        
         <el-form-item label="原因">
-          <el-input v-model="unavailableForm.reason" placeholder="请输入原因" />
+          <el-input 
+            v-model="unavailableForm.reason" 
+            placeholder="例如：周一维护时间、每日休息时间等"
+            type="textarea"
+            :rows="2"
+          />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -179,12 +365,16 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { adminService, reservationService } from '@/services/api'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Search } from '@element-plus/icons-vue'
 
 export default {
   name: 'Admin',
+  components: {
+    Search
+  },
   setup() {
     const activeTab = ref('users')
     const users = ref([])
@@ -194,12 +384,45 @@ export default {
     const loadingUsers = ref(false)
     const loadingUnavailable = ref(false)
     const loadingKeyManagers = ref(false)
+    const loadingReservations = ref(false)
     const showUnavailableDialog = ref(false)
     const showKeyManagerDialog = ref(false)
     const editingKeyManager = ref(false)
 
+    // 历史预约记录
+    const reservationHistory = ref([])
+    const reservationFilters = ref({
+      userName: '',
+      campusId: null,
+      dateRange: null
+    })
+    const reservationPagination = ref({
+      page: 1,
+      pageSize: 20,
+      total: 0
+    })
+
+    // 用户筛选条件
+    const userFilters = ref({
+      is_active: null,  // 'true' | 'false' | null
+      year: null,       // 入学年份
+      search: ''        // 搜索关键词
+    })
+
+    // 生成入学年份选项（最近10年）
+    const enrollmentYears = computed(() => {
+      const currentYear = new Date().getFullYear()
+      const years = []
+      for (let i = 0; i < 10; i++) {
+        years.push(currentYear - i)
+      }
+      return years
+    })
+
     const unavailableForm = ref({
       campus_id: null,
+      rule_type: 'weekday', // 'weekday' | 'all' | 'specific'
+      day_of_week: null, // 0-6 (0=周日, 1=周一, ..., 6=周六)
       date: null,
       start_hour: 8,
       end_hour: 12,
@@ -218,6 +441,11 @@ export default {
       return new Date(timeStr).toLocaleString('zh-CN')
     }
 
+    const getDayOfWeekText = (dayOfWeek) => {
+      const days = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+      return days[dayOfWeek] || '未知'
+    }
+
     const loadCampuses = async () => {
       try {
         campuses.value = await reservationService.getCampuses()
@@ -229,12 +457,33 @@ export default {
     const loadUsers = async () => {
       loadingUsers.value = true
       try {
-        users.value = await adminService.getAllUsers()
+        // 构建查询参数
+        const params = {}
+        if (userFilters.value.is_active !== null) {
+          params.is_active = userFilters.value.is_active
+        }
+        if (userFilters.value.year) {
+          params.year = userFilters.value.year
+        }
+        if (userFilters.value.search) {
+          params.search = userFilters.value.search
+        }
+        
+        users.value = await adminService.getAllUsers(params)
       } catch (error) {
         console.error('Failed to load users:', error)
       } finally {
         loadingUsers.value = false
       }
+    }
+
+    // 搜索防抖
+    let searchTimeout = null
+    const handleSearchUsers = () => {
+      if (searchTimeout) clearTimeout(searchTimeout)
+      searchTimeout = setTimeout(() => {
+        loadUsers()
+      }, 500)
     }
 
     const loadUnavailableTimes = async () => {
@@ -269,25 +518,75 @@ export default {
       }
     }
 
+    const handleAnnualReset = async () => {
+      try {
+        await ElMessageBox.confirm(
+          '确定要执行年度重置吗？这将禁用所有普通用户账号（管理员除外）。',
+          '年度重置确认',
+          {
+            confirmButtonText: '确定',
+            cancelButtonText: '取消',
+            type: 'warning'
+          }
+        )
+
+        await adminService.annualResetUsers()
+        ElMessage.success('年度重置成功')
+        loadUsers()
+      } catch (error) {
+        if (error !== 'cancel') {
+          console.error('Failed to reset users:', error)
+          ElMessage.error('年度重置失败')
+        }
+      }
+    }
+
     const handleAddUnavailable = async () => {
-      if (!unavailableForm.value.campus_id || !unavailableForm.value.date) {
-        ElMessage.warning('请填写所有必填项')
+      if (!unavailableForm.value.campus_id) {
+        ElMessage.warning('请选择校区')
+        return
+      }
+
+      if (unavailableForm.value.rule_type === 'weekday' && unavailableForm.value.day_of_week === null) {
+        ElMessage.warning('请选择周几')
+        return
+      }
+
+      if (unavailableForm.value.rule_type === 'specific' && !unavailableForm.value.date) {
+        ElMessage.warning('请选择日期')
+        return
+      }
+
+      if (unavailableForm.value.start_hour >= unavailableForm.value.end_hour) {
+        ElMessage.warning('结束时间必须大于开始时间')
         return
       }
 
       try {
-        const date = new Date(unavailableForm.value.date)
-        const dateStr = date.toISOString().split('T')[0]
+        const payload = {
+          campus_id: unavailableForm.value.campus_id,
+          start_hour: unavailableForm.value.start_hour,
+          end_hour: unavailableForm.value.end_hour,
+          reason: unavailableForm.value.reason
+        }
 
-        await adminService.createUnavailableTime({
-          ...unavailableForm.value,
-          date: dateStr
-        })
+        // 根据规则类型设置不同的字段
+        if (unavailableForm.value.rule_type === 'weekday') {
+          payload.day_of_week = unavailableForm.value.day_of_week
+        } else if (unavailableForm.value.rule_type === 'specific') {
+          const date = new Date(unavailableForm.value.date)
+          payload.date = date.toISOString().split('T')[0]
+        }
+        // 'all' 类型不需要额外字段
+
+        await adminService.createUnavailableTime(payload)
         
         ElMessage.success('添加成功')
         showUnavailableDialog.value = false
         unavailableForm.value = {
           campus_id: null,
+          rule_type: 'weekday',
+          day_of_week: null,
           date: null,
           start_hour: 8,
           end_hour: 12,
@@ -371,11 +670,61 @@ export default {
       }
     }
 
+    // 加载历史预约记录
+    const loadReservationHistory = async () => {
+      loadingReservations.value = true
+      try {
+        const params = {
+          page: reservationPagination.value.page,
+          page_size: reservationPagination.value.pageSize
+        }
+        
+        // 添加筛选条件
+        if (reservationFilters.value.userName) {
+          params.user_name = reservationFilters.value.userName
+        }
+        if (reservationFilters.value.campusId) {
+          params.campus_id = reservationFilters.value.campusId
+        }
+        if (reservationFilters.value.dateRange && reservationFilters.value.dateRange.length === 2) {
+          const [startDate, endDate] = reservationFilters.value.dateRange
+          params.start_date = startDate.toISOString().split('T')[0]
+          params.end_date = endDate.toISOString().split('T')[0]
+        }
+
+        const response = await adminService.getReservationHistory(params)
+        reservationHistory.value = response.data
+        reservationPagination.value.total = response.total
+      } catch (error) {
+        console.error('Failed to load reservation history:', error)
+        ElMessage.error('加载预约记录失败')
+      } finally {
+        loadingReservations.value = false
+      }
+    }
+
+    const handleReservationPageChange = (page) => {
+      reservationPagination.value.page = page
+      loadReservationHistory()
+    }
+
+    const handleReservationPageSizeChange = (pageSize) => {
+      reservationPagination.value.pageSize = pageSize
+      reservationPagination.value.page = 1
+      loadReservationHistory()
+    }
+
+    const formatDateTime = (dateTimeStr) => {
+      if (!dateTimeStr) return '-'
+      return new Date(dateTimeStr).toLocaleString('zh-CN')
+    }
+
     onMounted(() => {
       loadCampuses()
       loadUsers()
       loadUnavailableTimes()
       loadKeyManagers()
+      loadReservationHistory()
     })
 
     return {
@@ -387,18 +736,32 @@ export default {
       loadingUsers,
       loadingUnavailable,
       loadingKeyManagers,
+      loadingReservations,
       showUnavailableDialog,
       showKeyManagerDialog,
       editingKeyManager,
       unavailableForm,
       keyManagerForm,
+      userFilters,
+      enrollmentYears,
+      reservationHistory,
+      reservationFilters,
+      reservationPagination,
       formatTime,
+      getDayOfWeekText,
+      formatDateTime,
+      loadUsers,
       handleToggleUserActive,
+      handleAnnualReset,
+      handleSearchUsers,
       handleAddUnavailable,
       handleDeleteUnavailable,
       handleEditKeyManager,
       handleSubmitKeyManager,
-      handleDeleteKeyManager
+      handleDeleteKeyManager,
+      loadReservationHistory,
+      handleReservationPageChange,
+      handleReservationPageSizeChange
     }
   }
 }
@@ -408,6 +771,13 @@ export default {
 .card-header {
   display: flex;
   justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.filter-section {
+  display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 10px;

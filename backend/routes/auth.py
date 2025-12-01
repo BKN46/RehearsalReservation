@@ -45,12 +45,13 @@ def register():
     if User.query.filter_by(email=email).first():
         return jsonify({'error': 'Email already registered'}), 400
     
-    # 创建新用户
+    # 创建新用户（默认禁用状态，需要管理员启用）
     user = User(
         student_id=student_id,
         name=name,
         email=email,
-        phone=phone
+        phone=phone,
+        is_active=False  # 新用户默认禁用
     )
     user.set_password(password)
     
@@ -58,13 +59,11 @@ def register():
         db.session.add(user)
         db.session.commit()
         
-        # 创建访问令牌
-        access_token = create_access_token(identity=str(user.id))
-        
+        # 注册成功但账号需要激活
         return jsonify({
-            'message': 'Registration successful',
-            'access_token': access_token,
-            'user': user.to_dict()
+            'message': 'Registration successful. Your account needs to be activated by an administrator.',
+            'user': user.to_dict(),
+            'requires_activation': True
         }), 201
     except Exception as e:
         db.session.rollback()
@@ -128,6 +127,8 @@ def update_profile():
         user.name = data['name']
     if 'phone' in data:
         user.phone = data['phone']
+    if 'preferred_campus_id' in data:
+        user.preferred_campus_id = data['preferred_campus_id']
     if 'password' in data and data['password']:
         user.set_password(data['password'])
     

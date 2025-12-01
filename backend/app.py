@@ -32,6 +32,17 @@ app.register_blueprint(admin_bp, url_prefix='/api/admin')
 app.register_blueprint(key_bp, url_prefix='/api/key')
 app.register_blueprint(equipment_bp, url_prefix='/api/equipment')
 
+# Initialize scheduled tasks
+scheduler = None
+try:
+    from scheduled_tasks import init_scheduler
+    with app.app_context():
+        scheduler = init_scheduler(app)
+except ImportError:
+    print("Warning: APScheduler not installed. Scheduled tasks disabled.")
+except Exception as e:
+    print(f"Warning: Failed to initialize scheduler: {e}")
+
 @app.route('/api/health', methods=['GET'])
 def health_check():
     return jsonify({'status': 'healthy'}), 200
@@ -47,4 +58,4 @@ def internal_error(error):
 if __name__ == '__main__':
     with app.app_context():
         init_db()
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=8081)

@@ -15,6 +15,7 @@ class User(db.Model):
     phone = db.Column(db.String(20))
     is_admin = db.Column(db.Boolean, default=False)
     is_active = db.Column(db.Boolean, default=True)
+    preferred_campus_id = db.Column(db.Integer, db.ForeignKey('campuses.id'), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     reservations = db.relationship('Reservation', backref='user', lazy=True)
@@ -36,6 +37,7 @@ class User(db.Model):
             'phone': self.phone,
             'is_admin': self.is_admin,
             'is_active': self.is_active,
+            'preferred_campus_id': self.preferred_campus_id,
             'created_at': self.created_at.isoformat()
         }
 
@@ -68,6 +70,8 @@ class Reservation(db.Model):
     status = db.Column(db.String(20), default='active')  # active, cancelled
     key_picked_up = db.Column(db.Boolean, default=False)
     key_pickup_time = db.Column(db.DateTime)
+    key_returned = db.Column(db.Boolean, default=False)
+    key_return_time = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     __table_args__ = (
@@ -88,6 +92,8 @@ class Reservation(db.Model):
             'status': self.status,
             'key_picked_up': self.key_picked_up,
             'key_pickup_time': self.key_pickup_time.isoformat() if self.key_pickup_time else None,
+            'key_returned': self.key_returned,
+            'key_return_time': self.key_return_time.isoformat() if self.key_return_time else None,
             'created_at': self.created_at.isoformat()
         }
 
@@ -96,7 +102,8 @@ class UnavailableTime(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     campus_id = db.Column(db.Integer, db.ForeignKey('campuses.id'), nullable=False)
-    date = db.Column(db.Date, nullable=False)
+    date = db.Column(db.Date, nullable=True)  # 特定日期（可选）
+    day_of_week = db.Column(db.Integer, nullable=True)  # 0-6 (0=周日, 1=周一, ..., 6=周六)，为空表示所有日期
     start_hour = db.Column(db.Integer, nullable=False)
     end_hour = db.Column(db.Integer, nullable=False)
     reason = db.Column(db.String(200))
@@ -107,7 +114,8 @@ class UnavailableTime(db.Model):
             'id': self.id,
             'campus_id': self.campus_id,
             'campus_name': self.campus.name,
-            'date': self.date.isoformat(),
+            'date': self.date.isoformat() if self.date else None,
+            'day_of_week': self.day_of_week,
             'start_hour': self.start_hour,
             'end_hour': self.end_hour,
             'reason': self.reason,
