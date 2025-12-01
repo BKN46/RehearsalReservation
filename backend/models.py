@@ -15,6 +15,9 @@ class User(db.Model):
     phone = db.Column(db.String(20))
     is_admin = db.Column(db.Boolean, default=False)
     is_active = db.Column(db.Boolean, default=True)
+    email_verified = db.Column(db.Boolean, default=False)
+    verification_token = db.Column(db.String(100), unique=True, nullable=True)
+    verification_token_expires = db.Column(db.DateTime, nullable=True)
     preferred_campus_id = db.Column(db.Integer, db.ForeignKey('campuses.id'), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
@@ -37,6 +40,7 @@ class User(db.Model):
             'phone': self.phone,
             'is_admin': self.is_admin,
             'is_active': self.is_active,
+            'email_verified': self.email_verified,
             'preferred_campus_id': self.preferred_campus_id,
             'created_at': self.created_at.isoformat()
         }

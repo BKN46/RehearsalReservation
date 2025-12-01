@@ -119,9 +119,24 @@ export default {
           loading.value = true
           try {
             const { confirmPassword, ...userData } = form.value
-            await authStore.register(userData)
-            ElMessage.success('注册成功')
-            router.push('/')
+            const response = await authStore.register(userData)
+            
+            // 检查是否发送了验证邮件
+            if (response?.email_sent) {
+              ElMessage.success({
+                message: '注册成功！验证邮件已发送到您的邮箱，请查收并完成验证。',
+                duration: 5000
+              })
+            } else if (response?.requires_activation) {
+              ElMessage.warning({
+                message: '注册成功！您的账号需要管理员激活后才能使用。',
+                duration: 5000
+              })
+            } else {
+              ElMessage.success('注册成功')
+            }
+            
+            router.push('/login')
           } catch (error) {
             console.error('Registration failed:', error)
           } finally {

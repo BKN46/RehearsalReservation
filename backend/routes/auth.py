@@ -1,6 +1,8 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from models import db, User
+from datetime import datetime, timedelta
+import secrets
 import re
 
 auth_bp = Blueprint('auth', __name__)
@@ -55,16 +57,44 @@ def register():
     )
     user.set_password(password)
     
+    # 如果启用了邮箱验证，生成验证令牌并发送邮件
+    email_verification_enabled = current_app.config.get('EMAIL_VERIFICATION_ENABLED', False)
+    email_sent = False
+    
+    if email_verification_enabled:
+        try:
+            from email_service import send_verification_email
+            
+            # 生成验证令牌
+            verification_token = secrets.token_urlsafe(32)
+            user.verification_token = verification_token
+            user.verification_token_expires = datetime.utcnow() + timedelta(minutes=30)
+            
+            # 发送验证邮件
+            email_sent = send_verification_email(email, name, verification_token)
+        except Exception as e:
+            current_app.logger.error(f"Failed to send verification email: {str(e)}")
+    
     try:
         db.session.add(user)
         db.session.commit()
         
-        # 注册成功但账号需要激活
-        return jsonify({
-            'message': 'Registration successful. Your account needs to be activated by an administrator.',
+        response_data = {
             'user': user.to_dict(),
             'requires_activation': True
-        }), 201
+        }
+        
+        if email_verification_enabled:
+            if email_sent:
+                response_data['message'] = 'Registration successful. Please check your email to verify your account.'
+                response_data['email_sent'] = True
+            else:
+                response_data['message'] = 'Registration successful but failed to send verification email. Your account needs to be activated by an administrator.'
+                response_data['email_sent'] = False
+        else:
+            response_data['message'] = 'Registration successful. Your account needs to be activated by an administrator.'
+        
+        return jsonify(response_data), 201
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
@@ -141,3 +171,102 @@ def update_profile():
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
+
+@auth_bp.route('/verify-email', methods=['POST'])
+def verify_email():
+    """验证邮箱"""
+    if not current_app.config.get('EMAIL_VERIFICATION_ENABLED', False):
+        return jsonify({'error': 'Email verification is not enabled'}), 400
+    
+    data = request.get_json()
+    token = data.get('token')
+    
+    if not token:
+        return jsonify({'error': 'Verification token is required'}), 400
+    
+    # 查找用户
+    user = User.query.filter_by(verification_token=token).first()
+    
+    if not user:
+        return jsonify({'error': 'Invalid verification token'}), 400
+    
+    # 检查令牌是否过期
+    if user.verification_token_expires and user.verification_token_expires < datetime.utcnow():
+        return jsonify({'error': 'Verification token has expired'}), 400
+    
+    # 验证邮箱
+    user.email_verified = True
+    user.verification_token = None
+    user.verification_token_expires = None
+    # 邮箱验证后自动激活账户
+    user.is_active = True
+    
+    try:
+        db.session.commit()
+        return jsonify({
+            'message': 'Email verified successfully. Your account is now active.',
+            'user': user.to_dict()
+        }), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@auth_bp.route('/resend-verification', methods=['POST'])
+def resend_verification():
+    """重新发送验证邮件"""
+    if not current_app.config.get('EMAIL_VERIFICATION_ENABLED', False):
+        return jsonify({'error': 'Email verification is not enabled'}), 400
+    
+    data = request.get_json()
+    email = data.get('email')
+    
+    if not email:
+        return jsonify({'error': 'Email is required'}), 400
+    
+    user = User.query.filter_by(email=email).first()
+    
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    
+    if user.email_verified:
+        return jsonify({'error': 'Email already verified'}), 400
+    
+    try:
+        from email_service import send_verification_email
+        
+        # 生成新的验证令牌
+        verification_token = secrets.token_urlsafe(32)
+        user.verification_token = verification_token
+        user.verification_token_expires = datetime.utcnow() + timedelta(minutes=30)
+        
+        db.session.commit()
+        
+        # 发送验证邮件
+        email_sent = send_verification_email(email, user.name, verification_token)
+        
+        if email_sent:
+            return jsonify({
+                'message': 'Verification email sent successfully'
+            }), 200
+        else:
+            return jsonify({
+                'error': 'Failed to send verification email'
+            }), 500
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@auth_bp.route('/check-verification-status', methods=['GET'])
+@jwt_required()
+def check_verification_status():
+    """检查当前用户的邮箱验证状态"""
+    user_id = int(get_jwt_identity())
+    user = User.query.get(user_id)
+    
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    
+    return jsonify({
+        'email_verified': user.email_verified,
+        'email_verification_enabled': current_app.config.get('EMAIL_VERIFICATION_ENABLED', False)
+    }), 200

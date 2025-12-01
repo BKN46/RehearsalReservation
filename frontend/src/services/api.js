@@ -1,5 +1,22 @@
 import api from '@/utils/request'
 
+export const authService = {
+  // 验证邮箱
+  verifyEmail(token) {
+    return api.post('/auth/verify-email', { token })
+  },
+
+  // 重新发送验证邮件
+  resendVerification(email) {
+    return api.post('/auth/resend-verification', { email })
+  },
+
+  // 检查验证状态
+  checkVerificationStatus() {
+    return api.get('/auth/check-verification-status')
+  }
+}
+
 export const reservationService = {
   // 获取校区列表
   getCampuses() {

@@ -50,10 +50,10 @@ def init_scheduler(app):
     #     name='Annual User Reset',
     #     replace_existing=True
     # )
+    # logger.info("- 年度用户重置：每年1月1日 00:00")
     
     scheduler.start()
     logger.info("定时任务调度器已启动")
-    logger.info("- 年度用户重置：每年1月1日 00:00")
     
     return scheduler
 

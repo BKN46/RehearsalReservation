@@ -24,10 +24,11 @@ export const useAuthStore = defineStore('auth', {
 
     async register(userData) {
       const data = await api.post('/auth/register', userData)
-      this.token = data.access_token
-      this.user = data.user
-      localStorage.setItem('token', data.access_token)
-      localStorage.setItem('user', JSON.stringify(data.user))
+      // 注册时不自动登录，因为可能需要邮箱验证或管理员激活
+      // this.token = data.access_token
+      // this.user = data.user
+      // localStorage.setItem('token', data.access_token)
+      // localStorage.setItem('user', JSON.stringify(data.user))
       return data
     },
 
