@@ -1,0 +1,23 @@
+<view class="container">
+  <view class="user-card card">
+    <view class="avatar">
+      <open-data type="userAvatarUrl"></open-data>
+    </view>
+    <view class="info">
+      <view class="name">{{userInfo.name || '未绑定'}}</view>
+      <view class="student-id">{{userInfo.student_id}}</view>
+    </view>
+  </view>
+
+  <view class="menu-list">
+    <navigator url="/pages/my-reservations/index" class="menu-item card">
+      <text>我的预约</text>
+      <text class="arrow">></text>
+    </navigator>
+    
+    <navigator wx:if="{{isAdmin}}" url="/pages/admin/index" class="menu-item card">
+      <text>管理员入口</text>
+      <text class="arrow">></text>
+    </navigator>
+  </view>
+</view>

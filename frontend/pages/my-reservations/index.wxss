@@ -1,0 +1,66 @@
+.reservation-list {
+  width: 100%;
+  padding: 20rpx;
+  box-sizing: border-box;
+}
+
+.reservation-item {
+  margin-bottom: 20rpx;
+}
+
+.item-header {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1rpx solid #eee;
+  padding-bottom: 15rpx;
+  margin-bottom: 15rpx;
+  font-weight: bold;
+}
+
+.status.active {
+  color: #1AAD19;
+}
+
+.status.cancelled {
+  color: #999;
+}
+
+.info-row {
+  margin-bottom: 10rpx;
+  font-size: 28rpx;
+  color: #666;
+}
+
+.label {
+  color: #333;
+  font-weight: bold;
+}
+
+.success {
+  color: #1AAD19;
+}
+
+.item-footer {
+  border-top: 1rpx solid #eee;
+  padding-top: 15rpx;
+  margin-top: 15rpx;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-mini {
+  font-size: 24rpx;
+  margin-left: 20rpx;
+  margin-right: 0;
+}
+
+.btn-cancel {
+  background-color: #f8f8f8;
+  color: #666;
+}
+
+.empty-tip {
+  text-align: center;
+  margin-top: 100rpx;
+  color: #999;
+}

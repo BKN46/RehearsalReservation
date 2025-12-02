@@ -1,0 +1,39 @@
+.form {
+  padding: 20rpx;
+}
+.form-title {
+  font-weight: bold;
+  margin-bottom: 20rpx;
+}
+.picker-input {
+  border: 1rpx solid #ddd;
+  padding: 10rpx;
+  margin-bottom: 20rpx;
+}
+.row {
+  display: flex;
+  justify-content: space-between;
+}
+.input-half {
+  width: 48%;
+  border: 1rpx solid #ddd;
+  padding: 10rpx;
+  margin-bottom: 20rpx;
+  box-sizing: border-box;
+}
+.input {
+  width: 100%;
+  border: 1rpx solid #ddd;
+  padding: 10rpx;
+  margin-bottom: 20rpx;
+  box-sizing: border-box;
+}
+.item {
+  padding: 20rpx;
+  margin-bottom: 20rpx;
+}
+.btn-warn {
+  background-color: #e64340;
+  color: white;
+  margin-top: 10rpx;
+}

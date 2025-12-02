@@ -1,0 +1,130 @@
+.campus-tabs {
+  display: flex;
+  background: #fff;
+  padding: 20rpx;
+  width: 100%;
+  box-sizing: border-box;
+  border-bottom: 1rpx solid #eee;
+}
+
+.tab-item {
+  flex: 1;
+  text-align: center;
+  padding: 10rpx;
+  font-size: 30rpx;
+  color: #666;
+}
+
+.tab-item.active {
+  color: #1AAD19;
+  border-bottom: 4rpx solid #1AAD19;
+  font-weight: bold;
+}
+
+.date-section {
+  background: #fff;
+  padding: 20rpx;
+  margin-bottom: 20rpx;
+  text-align: center;
+}
+
+.date-picker {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 32rpx;
+}
+
+.picker-hint {
+  font-size: 24rpx;
+  color: #999;
+  margin-left: 10rpx;
+}
+
+.slots-container {
+  flex: 1;
+  width: 100%;
+  padding: 20rpx;
+  box-sizing: border-box;
+}
+
+.slots-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+
+.slot-item {
+  width: 48%;
+  background: #fff;
+  margin-bottom: 20rpx;
+  padding: 20rpx;
+  border-radius: 10rpx;
+  box-sizing: border-box;
+  border: 2rpx solid transparent;
+  text-align: center;
+}
+
+.slot-time {
+  font-size: 30rpx;
+  font-weight: bold;
+  margin-bottom: 10rpx;
+}
+
+.slot-status {
+  font-size: 24rpx;
+}
+
+.slot-item.available {
+  border-color: #1AAD19;
+  color: #1AAD19;
+}
+
+.slot-item.selected {
+  background-color: #1AAD19;
+  color: #fff;
+}
+
+.slot-item.reserved {
+  background-color: #f5f5f5;
+  color: #999;
+  border-color: #ddd;
+}
+
+.slot-item.unavailable {
+  background-color: #fff0f0;
+  color: #e64340;
+  border-color: #e64340;
+}
+
+.slot-item.disabled {
+  background-color: #f5f5f5;
+  color: #ccc;
+}
+
+.booking-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: #fff;
+  padding: 20rpx;
+  box-shadow: 0 -2rpx 10rpx rgba(0,0,0,0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-sizing: border-box;
+  z-index: 100;
+}
+
+.booking-info {
+  font-size: 28rpx;
+  color: #333;
+}
+
+.btn-confirm {
+  background-color: #1AAD19;
+  color: white;
+  font-size: 28rpx;
+  margin: 0;
+}

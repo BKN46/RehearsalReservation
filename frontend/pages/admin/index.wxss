@@ -1,0 +1,14 @@
+.menu-list {
+  width: 100%;
+}
+
+.menu-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 30rpx;
+}
+
+.arrow {
+  color: #999;
+}

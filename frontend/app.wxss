@@ -1,0 +1,29 @@
+/**app.wxss**/
+.container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 200rpx 0;
+  box-sizing: border-box;
+} 
+
+page {
+  background-color: #f6f6f6;
+  font-size: 28rpx;
+  color: #333;
+}
+
+.btn-primary {
+  background-color: #1AAD19;
+  color: white;
+}
+
+.card {
+  background: white;
+  border-radius: 10rpx;
+  padding: 20rpx;
+  margin: 20rpx;
+  box-shadow: 0 2rpx 5rpx rgba(0,0,0,0.1);
+}

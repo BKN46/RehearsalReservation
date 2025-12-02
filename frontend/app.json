@@ -1,0 +1,45 @@
+{
+  "pages": [
+    "pages/login/index",
+    "pages/index/index",
+    "pages/my-reservations/index",
+    "pages/equipment/index",
+    "pages/profile/index",
+    "pages/admin/index",
+    "pages/admin/unavailable/index",
+    "pages/admin/key-managers/index"
+  ],
+  "window": {
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#fff",
+    "navigationBarTitleText": "排练室预约",
+    "navigationBarTextStyle": "black"
+  },
+  "tabBar": {
+    "color": "#999999",
+    "selectedColor": "#1AAD19",
+    "backgroundColor": "#ffffff",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "预约",
+        "iconPath": "images/tabbar/home.png",
+        "selectedIconPath": "images/tabbar/home-active.png"
+      },
+      {
+        "pagePath": "pages/equipment/index",
+        "text": "设备",
+        "iconPath": "images/tabbar/equipment.png",
+        "selectedIconPath": "images/tabbar/equipment-active.png"
+      },
+      {
+        "pagePath": "pages/profile/index",
+        "text": "我的",
+        "iconPath": "images/tabbar/profile.png",
+        "selectedIconPath": "images/tabbar/profile-active.png"
+      }
+    ]
+  },
+  "lazyCodeLoading": "requiredComponents",
+  "sitemapLocation": "sitemap.json"
+}

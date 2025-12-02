@@ -1,0 +1,15 @@
+<view class="container">
+  <view class="menu-list">
+    <navigator url="/pages/admin/unavailable/index" class="menu-item card">
+      <text>不可预约时间管理</text>
+      <text class="arrow">></text>
+    </navigator>
+    
+    <navigator url="/pages/admin/key-managers/index" class="menu-item card">
+      <text>钥匙管理员管理</text>
+      <text class="arrow">></text>
+    </navigator>
+
+    <!-- Add more admin functions as needed -->
+  </view>
+</view>

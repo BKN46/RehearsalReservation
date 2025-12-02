@@ -1,0 +1,40 @@
+<view class="container">
+  <!-- Campus Selector -->
+  <view class="campus-tabs">
+    <view wx:for="{{campuses}}" wx:key="id" 
+          class="tab-item {{selectedCampusId == item.id ? 'active' : ''}}"
+          bindtap="selectCampus" data-id="{{item.id}}">
+      {{item.name}}
+    </view>
+  </view>
+
+  <!-- Date Selector -->
+  <view class="date-section">
+    <picker mode="date" value="{{date}}" start="{{startDate}}" end="{{endDate}}" bindchange="bindDateChange">
+      <view class="date-picker">
+        <text>当前日期: {{date}}</text>
+        <text class="picker-hint">点击切换</text>
+      </view>
+    </picker>
+  </view>
+
+  <!-- Time Slots -->
+  <scroll-view scroll-y class="slots-container">
+    <view class="slots-grid">
+      <view wx:for="{{timeSlots}}" wx:key="hour" 
+            class="slot-item {{item.status}} {{selectedSlot == item.hour ? 'selected' : ''}}"
+            bindtap="selectSlot" data-hour="{{item.hour}}">
+        <view class="slot-time">{{item.hour}}:00 - {{item.hour + 1}}:00</view>
+        <view class="slot-status">{{item.statusText}}</view>
+      </view>
+    </view>
+  </scroll-view>
+
+  <!-- Booking Action -->
+  <view class="booking-bar" wx:if="{{selectedSlot !== null}}">
+    <view class="booking-info">
+      <text>已选: {{date}} {{selectedSlot}}:00-{{selectedSlot+1}}:00</text>
+    </view>
+    <button class="btn-confirm" bindtap="confirmBooking">确认预约</button>
+  </view>
+</view>

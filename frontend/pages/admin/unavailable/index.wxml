@@ -1,0 +1,32 @@
+<view class="container">
+  <view class="card form">
+    <view class="form-title">添加不可预约时间</view>
+    <picker bindchange="bindCampusChange" value="{{campusIndex}}" range="{{campuses}}" range-key="name">
+      <view class="picker-input">校区: {{campuses[campusIndex].name}}</view>
+    </picker>
+    <view class="row">
+      <input class="input-half" placeholder="开始时间(8-22)" type="number" bindinput="inputChange" data-field="startHour" />
+      <input class="input-half" placeholder="结束时间(8-22)" type="number" bindinput="inputChange" data-field="endHour" />
+    </view>
+    <input class="input" placeholder="原因" bindinput="inputChange" data-field="reason" />
+    <view class="row">
+      <picker mode="date" bindchange="bindDateChange">
+        <view class="picker-input">日期: {{date || '不限'}}</view>
+      </picker>
+      <picker bindchange="bindDayChange" value="{{dayIndex}}" range="{{days}}">
+        <view class="picker-input">周几: {{days[dayIndex]}}</view>
+      </picker>
+    </view>
+    <button class="btn-primary" bindtap="add">添加</button>
+  </view>
+
+  <view class="list">
+    <view wx:for="{{list}}" wx:key="_id" class="card item">
+      <view>{{item.campus_id == 1 ? '学院路' : '沙河'}}</view>
+      <view>{{item.date || (item.day_of_week !== null ? days[item.day_of_week] : '所有日期')}}</view>
+      <view>{{item.start_hour}}:00 - {{item.end_hour}}:00</view>
+      <view>原因: {{item.reason}}</view>
+      <button class="btn-mini btn-warn" bindtap="remove" data-id="{{item._id}}">删除</button>
+    </view>
+  </view>
+</view>

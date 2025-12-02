@@ -1,0 +1,20 @@
+<view class="container">
+  <view class="card form">
+    <view class="form-title">添加钥匙管理员</view>
+    <picker bindchange="bindCampusChange" value="{{campusIndex}}" range="{{campuses}}" range-key="name">
+      <view class="picker-input">校区: {{campuses[campusIndex].name}}</view>
+    </picker>
+    <input class="input" placeholder="姓名" bindinput="inputChange" data-field="name" />
+    <input class="input" placeholder="联系方式" bindinput="inputChange" data-field="contact" />
+    <button class="btn-primary" bindtap="add">添加</button>
+  </view>
+
+  <view class="list">
+    <view wx:for="{{list}}" wx:key="_id" class="card item">
+      <view>{{item.campus_id == 1 ? '学院路' : '沙河'}}</view>
+      <view>姓名: {{item.name}}</view>
+      <view>联系方式: {{item.contact}}</view>
+      <button class="btn-mini btn-warn" bindtap="remove" data-id="{{item._id}}">删除</button>
+    </view>
+  </view>
+</view>
