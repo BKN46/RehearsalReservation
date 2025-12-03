@@ -3,7 +3,7 @@
   "cloudfunctionRoot": "cloudfunction/",
   "projectname": "RehearsalReservation",
   "description": "Rehearsal Reservation Mini Program",
-  "appid": "wxfae00e3780353b45",
+  "appid": "",
   "setting": {
     "urlCheck": true,
     "es6": true,

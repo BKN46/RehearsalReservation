@@ -2,7 +2,7 @@
   "miniprogramRoot": "./",
   "projectname": "RehearsalReservation",
   "description": "Rehearsal Reservation System",
-  "appid": "wx1234567890abcdef",
+  "appid": "",
   "setting": {
     "urlCheck": true,
     "es6": true,
