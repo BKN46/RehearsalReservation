@@ -4,37 +4,60 @@ Page({
   data: {
     campuses: [],
     selectedCampusId: null,
-    date: '',
-    startDate: '',
-    endDate: '',
-    timeSlots: [],
-    selectedSlot: null,
-    reservations: [],
-    unavailableTimes: []
+    weekDays: [],
+    timeSlots: [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21],
+    weeklyReservations: [],
+    unavailableTimes: [],
+    keyManagers: [],
+    keyPickups: [],
+    userWeeklyHours: null,
+    selectedSlot: null
   },
 
   onLoad() {
-    const now = new Date()
-    const dateStr = now.toISOString().split('T')[0]
-    
-    // Calculate end date (e.g., 2 weeks from now)
-    const end = new Date()
-    end.setDate(end.getDate() + 14)
-    const endDateStr = end.toISOString().split('T')[0]
-
-    this.setData({
-      date: dateStr,
-      startDate: dateStr,
-      endDate: endDateStr
-    })
-
+    this.calculateWeekDays()
     this.fetchCampuses()
   },
 
   onShow() {
     if (this.data.selectedCampusId) {
       this.loadData()
+      this.loadMyWeeklyHours()
     }
+  },
+
+  calculateWeekDays() {
+    const now = new Date()
+    const currentHour = now.getHours()
+    const dayOfWeek = now.getDay() // 0=Sun
+    
+    let baseDate = new Date(now)
+    if (dayOfWeek === 0 && currentHour >= 22) {
+      baseDate.setDate(now.getDate() + 1)
+    }
+    
+    const adjustedDayOfWeek = baseDate.getDay() || 7
+    const monday = new Date(baseDate)
+    monday.setDate(baseDate.getDate() - adjustedDayOfWeek + 1)
+
+    const days = []
+    const dayNames = ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
+    
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(monday)
+      d.setDate(monday.getDate() + i)
+      const year = d.getFullYear()
+      const month = String(d.getMonth() + 1).padStart(2, '0')
+      const day = String(d.getDate()).padStart(2, '0')
+      days.push({
+        date: `${year}-${month}-${day}`,
+        dayName: dayNames[i],
+        dateText: `${d.getMonth() + 1}/${d.getDate()}`,
+        reservations: {}, // Map hour -> reservation
+        unavailable: {} // Map hour -> boolean
+      })
+    }
+    this.setData({ weekDays: days })
   },
 
   fetchCampuses() {
@@ -42,37 +65,27 @@ Page({
       name: 'api',
       data: { $url: 'reservation/campuses' },
       success: res => {
-        this.setData({ campuses: res.result })
-        if (res.result.length > 0) {
-          this.setData({ selectedCampusId: res.result[0].id })
+        const campuses = res.result
+        this.setData({ campuses })
+        if (campuses.length > 0) {
+          this.setData({ selectedCampusId: campuses[0].id })
           this.loadData()
+          this.loadMyWeeklyHours()
         }
       }
     })
   },
 
-  selectCampus(e) {
-    const id = e.currentTarget.dataset.id
-    this.setData({ selectedCampusId: id, selectedSlot: null })
-    this.loadData()
-  },
-
-  bindDateChange(e) {
-    this.setData({ date: e.detail.value, selectedSlot: null })
-    this.loadData()
-  },
-
   loadData() {
-    wx.showLoading({ title: '加载中...' })
-    const { selectedCampusId, date } = this.data
+    if (!this.data.selectedCampusId) return
     
-    // Fetch reservations and unavailable times in parallel
+    wx.showLoading({ title: '加载中...' })
+    
     const p1 = wx.cloud.callFunction({
       name: 'api',
       data: { 
-        $url: 'reservation/date',
-        campus_id: selectedCampusId,
-        date: date
+        $url: 'reservation/weekly',
+        campus_id: this.data.selectedCampusId
       }
     })
 
@@ -80,17 +93,39 @@ Page({
       name: 'api',
       data: {
         $url: 'admin/unavailable-times',
-        campus_id: selectedCampusId
+        campus_id: this.data.selectedCampusId
       }
     })
 
-    Promise.all([p1, p2]).then(([res1, res2]) => {
+    const p3 = wx.cloud.callFunction({
+      name: 'api',
+      data: {
+        $url: 'admin/key-managers',
+        campus_id: this.data.selectedCampusId
+      }
+    })
+
+    const p4 = wx.cloud.callFunction({
+      name: 'api',
+      data: {
+        $url: 'key/pickups',
+        campus_id: this.data.selectedCampusId
+      }
+    })
+
+    Promise.all([p1, p2, p3, p4]).then(([res1, res2, res3, res4]) => {
       wx.hideLoading()
+      const reservations = res1.result.reservations
+      const unavailable = res2.result
+      
+      this.processScheduleData(reservations, unavailable)
+      
       this.setData({
-        reservations: res1.result,
-        unavailableTimes: res2.result
+        weeklyReservations: reservations,
+        unavailableTimes: unavailable,
+        keyManagers: res3.result,
+        keyPickups: res4.result
       })
-      this.processSlots()
     }).catch(err => {
       wx.hideLoading()
       console.error(err)
@@ -98,81 +133,121 @@ Page({
     })
   },
 
-  processSlots() {
-    const { reservations, unavailableTimes, date } = this.data
-    const slots = []
-    const currentHour = new Date().getHours()
-    const isToday = date === new Date().toISOString().split('T')[0]
-    const dayOfWeek = new Date(date).getDay() // 0-6
+  processScheduleData(reservations, unavailable) {
+    const weekDays = this.data.weekDays.map(day => {
+      const dayRes = {}
+      const dayUnavail = {}
+      const dayOfWeek = new Date(day.date).getDay()
 
-    for (let h = 8; h < 22; h++) {
-      let status = 'available'
-      let statusText = '可预约'
-
-      // Check past time
-      if (isToday && h <= currentHour) {
-        status = 'disabled'
-        statusText = '已过期'
-      }
-
-      // Check reservations
-      const isReserved = reservations.some(r => r.start_hour <= h && r.end_hour > h)
-      if (isReserved) {
-        status = 'reserved'
-        statusText = '已预约'
-      }
-
-      // Check unavailable times
-      const isUnavailable = unavailableTimes.some(u => {
-        // Check date specific
-        if (u.date && u.date === date) {
-          return u.start_hour <= h && u.end_hour > h
+      // Process Unavailable
+      unavailable.forEach(u => {
+        let match = false
+        if (u.date) {
+          match = u.date === day.date
+        } else if (u.day_of_week !== null && u.day_of_week !== undefined) {
+          match = u.day_of_week === dayOfWeek
+        } else {
+          match = true
         }
-        // Check day of week specific
-        if (u.day_of_week !== null && u.day_of_week !== undefined) {
-           // Cloud function uses JS getDay() (0-6)
-           return u.day_of_week === dayOfWeek && u.start_hour <= h && u.end_hour > h
+
+        if (match) {
+          for (let h = u.start_hour; h < u.end_hour; h++) {
+            dayUnavail[h] = true
+          }
         }
-        // Check all dates (if no date and no day_of_week)
-        if (!u.date && (u.day_of_week === null || u.day_of_week === undefined)) {
-           return u.start_hour <= h && u.end_hour > h
-        }
-        return false
       })
 
-      if (isUnavailable) {
-        status = 'unavailable'
-        statusText = '不可用'
-      }
-
-      slots.push({
-        hour: h,
-        status,
-        statusText
+      // Process Reservations
+      reservations.forEach(r => {
+        if (r.date === day.date && r.status === 'active') {
+          dayRes[r.start_hour] = r
+        }
       })
-    }
 
-    this.setData({ timeSlots: slots })
+      return {
+        ...day,
+        reservations: dayRes,
+        unavailable: dayUnavail
+      }
+    })
+
+    this.setData({ weekDays })
+  },
+
+  loadMyWeeklyHours() {
+    wx.cloud.callFunction({
+      name: 'api',
+      data: { $url: 'reservation/my-reservations' },
+      success: res => {
+        const reservations = res.result
+        const now = new Date()
+        const dayOfWeek = now.getDay()
+        const diff = now.getDate() - dayOfWeek + (dayOfWeek == 0 ? -6 : 1)
+        const monday = new Date(now)
+        monday.setDate(diff)
+        monday.setHours(0,0,0,0)
+        
+        const sunday = new Date(monday)
+        sunday.setDate(monday.getDate() + 6)
+        sunday.setHours(23,59,59,999)
+
+        const weeklyRes = reservations.filter(r => {
+          const d = new Date(r.date)
+          return d >= monday && d <= sunday && r.status === 'active'
+        })
+
+        let total = 0
+        weeklyRes.forEach(r => total += (r.end_hour - r.start_hour))
+        this.setData({ userWeeklyHours: total })
+      }
+    })
+  },
+
+  selectCampus(e) {
+    const id = e.currentTarget.dataset.id
+    this.setData({ 
+      selectedCampusId: id,
+      selectedSlot: null
+    })
+    this.loadData()
   },
 
   selectSlot(e) {
-    const hour = e.currentTarget.dataset.hour
-    const slot = this.data.timeSlots.find(s => s.hour === hour)
+    const { date, hour } = e.currentTarget.dataset
+    const dayData = this.data.weekDays.find(d => d.date === date)
     
-    if (slot.status !== 'available') {
+    const now = new Date()
+    const slotDate = new Date(date)
+    slotDate.setHours(hour)
+    if (slotDate < now) return
+
+    if (dayData.unavailable[hour]) return
+
+    const res = dayData.reservations[hour]
+    if (res) {
+      let keyStatus = '未领取钥匙'
+      if (res.key_returned) keyStatus = '已归还钥匙'
+      else if (res.key_picked_up) keyStatus = '已领取钥匙'
+      
+      wx.showModal({
+        title: '预约详情',
+        content: `${res.user_name}\n${res.start_hour}:00-${res.end_hour}:00\n${keyStatus}`,
+        showCancel: false
+      })
       return
     }
 
-    this.setData({ selectedSlot: hour })
+    this.setData({
+      selectedSlot: { date, hour }
+    })
   },
 
   confirmBooking() {
-    const { selectedCampusId, date, selectedSlot } = this.data
-    if (selectedSlot === null) return
+    if (!this.data.selectedSlot) return
 
     wx.showModal({
       title: '确认预约',
-      content: `确定预约 ${date} ${selectedSlot}:00 - ${selectedSlot+1}:00 吗？`,
+      content: `确定预约 ${this.data.selectedSlot.date} ${this.data.selectedSlot.hour}:00 - ${this.data.selectedSlot.hour + 1}:00 吗？`,
       success: (res) => {
         if (res.confirm) {
           this.doBooking()
@@ -183,20 +258,19 @@ Page({
 
   doBooking() {
     wx.showLoading({ title: '提交中...' })
-    const { selectedCampusId, date, selectedSlot } = this.data
     const userInfo = app.globalData.userInfo
 
     wx.cloud.callFunction({
       name: 'api',
       data: {
         $url: 'reservation/create',
-        campus_id: selectedCampusId,
-        date: date,
-        start_hour: selectedSlot,
-        end_hour: selectedSlot + 1,
-        student_id: userInfo.student_id,
-        name: userInfo.name,
-        contact: userInfo.phone
+        campus_id: this.data.selectedCampusId,
+        date: this.data.selectedSlot.date,
+        start_hour: this.data.selectedSlot.hour,
+        end_hour: this.data.selectedSlot.hour + 1,
+        student_id: userInfo?.student_id || 'anonymous',
+        name: userInfo?.name || 'Anonymous',
+        contact: userInfo?.phone || ''
       },
       success: res => {
         wx.hideLoading()
@@ -206,6 +280,7 @@ Page({
           wx.showToast({ title: '预约成功', icon: 'success' })
           this.setData({ selectedSlot: null })
           this.loadData()
+          this.loadMyWeeklyHours()
         }
       },
       fail: err => {

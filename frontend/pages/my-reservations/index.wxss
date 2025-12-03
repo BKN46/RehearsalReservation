@@ -1,66 +1,101 @@
-.reservation-list {
-  width: 100%;
-  padding: 20rpx;
-  box-sizing: border-box;
-}
-
-.reservation-item {
-  margin-bottom: 20rpx;
-}
-
-.item-header {
+.tabs {
   display: flex;
-  justify-content: space-between;
+  background: #fff;
+  margin-bottom: 20rpx;
   border-bottom: 1rpx solid #eee;
-  padding-bottom: 15rpx;
-  margin-bottom: 15rpx;
-  font-weight: bold;
 }
 
-.status.active {
-  color: #1AAD19;
-}
-
-.status.cancelled {
-  color: #999;
-}
-
-.info-row {
-  margin-bottom: 10rpx;
-  font-size: 28rpx;
+.tab-item {
+  flex: 1;
+  text-align: center;
+  padding: 25rpx 0;
+  font-size: 30rpx;
   color: #666;
+  position: relative;
 }
 
-.label {
+.tab-item.active {
   color: #333;
   font-weight: bold;
 }
 
-.success {
-  color: #1AAD19;
+.tab-item.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40rpx;
+  height: 4rpx;
+  background-color: #333;
 }
 
-.item-footer {
-  border-top: 1rpx solid #eee;
-  padding-top: 15rpx;
-  margin-top: 15rpx;
+.res-card {
+  padding: 30rpx;
+  margin-bottom: 20rpx;
+}
+
+.res-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20rpx;
+  padding-bottom: 15rpx;
+  border-bottom: 1rpx solid #f5f5f5;
+}
+
+.res-date {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.res-status {
+  font-size: 26rpx;
+}
+
+.res-status.status-blue { color: #4eb8fe; }
+.res-status.status-green { color: #67c23a; }
+.res-status.status-grey { color: #999; }
+
+.res-body {
+  margin-bottom: 20rpx;
+}
+
+.res-row {
+  display: flex;
+  margin-bottom: 10rpx;
+  font-size: 28rpx;
+}
+
+.label {
+  color: #999;
+  width: 120rpx;
+}
+
+.value {
+  color: #333;
+  flex: 1;
+}
+
+.res-footer {
   display: flex;
   justify-content: flex-end;
-}
-
-.btn-mini {
-  font-size: 24rpx;
-  margin-left: 20rpx;
-  margin-right: 0;
+  padding-top: 15rpx;
+  border-top: 1rpx solid #f5f5f5;
 }
 
 .btn-cancel {
-  background-color: #f8f8f8;
-  color: #666;
+  margin: 0;
+  background: #fff;
+  color: #f56c6c;
+  border: 1rpx solid #f56c6c;
+  font-size: 24rpx;
+  line-height: 1.8;
 }
 
-.empty-tip {
+.empty-state {
   text-align: center;
-  margin-top: 100rpx;
+  padding: 100rpx 0;
   color: #999;
+  font-size: 28rpx;
 }

@@ -1,31 +1,45 @@
-# Rehearsal Reservation Mini Program
+# Rehearsal Reservation System (Native Mini Program)
 
-This is the WeChat Mini Program frontend for the Rehearsal Reservation system.
-
-## Setup
-
-1.  Open **WeChat Developer Tools**.
-2.  Import this project (select the `frontend` folder).
-3.  Set the **AppID** (use your own or a test ID).
-4.  Ensure the **Cloud Development** environment is set up and the `api` cloud function is deployed (see `../cloudfunction/README.md`).
-
-## Features
-
--   **Login**: WeChat Login + Student ID Binding.
--   **Reservation**: Select campus, date, and time slot.
--   **My Reservations**: View and cancel reservations.
--   **Equipment**: Browse, borrow, and register equipment.
--   **Admin**: Manage unavailable times and key managers.
+This is the frontend for the Rehearsal Reservation System, implemented as a native WeChat Mini Program.
 
 ## Project Structure
 
--   `pages/`: Page files.
-    -   `login/`: Login and registration.
-    -   `index/`: Home page (Reservation).
-    -   `my-reservations/`: User's reservations.
-    -   `equipment/`: Equipment management.
-    -   `profile/`: User profile.
-    -   `admin/`: Admin dashboard.
--   `images/`: Assets.
--   `app.js`: Global logic (Cloud init).
--   `app.json`: Global configuration.
+- `pages/`: Application pages
+  - `index/`: Home page (Weekly Schedule)
+  - `login/`: Login & Registration
+  - `equipment/`: Equipment Management
+  - `profile/`: User Profile
+  - `my-reservations/`: User Reservations
+  - `admin/`: Admin Dashboard & Subpages
+- `images/`: Static assets (TabBar icons need to be placed in `images/tabbar/`)
+- `app.js`: Global logic & Cloud initialization
+- `app.json`: Global configuration
+- `app.wxss`: Global styles
+
+## Theme
+
+The application uses a minimalist Black/White/Gray theme:
+- Primary: Black (`#333`)
+- Background: Light Gray (`#f5f5f5`)
+- Cards: White (`#fff`)
+- Functional Colors (Time Blocks):
+  - Blue: Reserved
+  - Green: Key Picked Up
+  - Gray: Key Returned
+  - Red/Striped: Unavailable
+
+## Setup
+
+1. **Open in WeChat DevTools**
+   - Import the `frontend` directory.
+   - Ensure your AppID is configured in `project.config.json`.
+
+2. **Cloud Development**
+   - Ensure your `cloudfunction` folder is deployed to your WeChat Cloud environment.
+   - Update the environment ID in `app.js` if necessary.
+
+3. **Icons**
+   - Place your tabbar icons in `frontend/images/tabbar/`:
+     - `home.png`, `home-active.png`
+     - `equipment.png`, `equipment-active.png`
+     - `profile.png`, `profile-active.png`

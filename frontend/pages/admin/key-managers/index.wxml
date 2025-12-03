@@ -1,20 +1,42 @@
 <view class="container">
-  <view class="card form">
-    <view class="form-title">添加钥匙管理员</view>
-    <picker bindchange="bindCampusChange" value="{{campusIndex}}" range="{{campuses}}" range-key="name">
-      <view class="picker-input">校区: {{campuses[campusIndex].name}}</view>
-    </picker>
-    <input class="input" placeholder="姓名" bindinput="inputChange" data-field="name" />
-    <input class="input" placeholder="联系方式" bindinput="inputChange" data-field="contact" />
-    <button class="btn-primary" bindtap="add">添加</button>
+  <view class="campus-tabs">
+    <view 
+      wx:for="{{campuses}}" 
+      wx:key="id" 
+      class="tab-item {{selectedCampusId === item.id ? 'active' : ''}}"
+      bindtap="selectCampus"
+      data-id="{{item.id}}"
+    >
+      {{ item.name }}
+    </view>
   </view>
 
-  <view class="list">
-    <view wx:for="{{list}}" wx:key="_id" class="card item">
-      <view>{{item.campus_id == 1 ? '学院路' : '沙河'}}</view>
-      <view>姓名: {{item.name}}</view>
-      <view>联系方式: {{item.contact}}</view>
-      <button class="btn-mini btn-warn" bindtap="remove" data-id="{{item._id}}">删除</button>
+  <view class="manager-list">
+    <view wx:for="{{managers}}" wx:key="_id" class="manager-card card">
+      <view class="info">
+        <view class="name">{{ item.name }}</view>
+        <view class="contact">{{ item.contact }}</view>
+      </view>
+      <button class="btn-delete" size="mini" bindtap="deleteManager" data-id="{{item._id}}">删除</button>
+    </view>
+    
+    <view wx:if="{{managers.length === 0}}" class="empty-state">
+      <text>暂无管理员</text>
+    </view>
+  </view>
+
+  <button class="btn-add" bindtap="showAddModal">+</button>
+
+  <!-- Add Modal -->
+  <view class="modal-overlay" wx:if="{{showAddModal}}" bindtap="hideAddModal">
+    <view class="modal-content" catchtap="preventBubble">
+      <view class="modal-title">添加管理员</view>
+      <input class="modal-input" model:value="{{newManagerName}}" placeholder="姓名" />
+      <input class="modal-input" model:value="{{newManagerContact}}" placeholder="联系方式" />
+      <view class="modal-actions">
+        <button class="btn-cancel" bindtap="hideAddModal">取消</button>
+        <button class="btn-confirm" bindtap="addManager">确定</button>
+      </view>
     </view>
   </view>
 </view>

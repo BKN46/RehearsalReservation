@@ -1,45 +1,91 @@
 .user-card {
+  padding: 40rpx;
+  margin-bottom: 30rpx;
+}
+
+.user-info {
   display: flex;
   align-items: center;
-  width: 100%;
-  box-sizing: border-box;
 }
 
 .avatar {
   width: 100rpx;
   height: 100rpx;
   border-radius: 50%;
-  overflow: hidden;
+  background-color: #333;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin-right: 30rpx;
 }
 
-.info {
+.avatar text {
+  color: #fff;
+  font-size: 40rpx;
+  font-weight: bold;
+}
+
+.avatar.placeholder {
+  background-color: #eee;
+}
+
+.avatar.placeholder text {
+  color: #999;
+}
+
+.info-text {
   flex: 1;
 }
 
 .name {
   font-size: 36rpx;
   font-weight: bold;
+  color: #333;
   margin-bottom: 10rpx;
 }
 
-.student-id {
-  font-size: 28rpx;
-  color: #666;
+.sub-info {
+  font-size: 26rpx;
+  color: #999;
 }
 
 .menu-list {
-  width: 100%;
-  margin-top: 30rpx;
+  padding: 0 30rpx;
 }
 
 .menu-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 30rpx;
+  padding: 30rpx 0;
+  border-bottom: 1rpx solid #f5f5f5;
+}
+
+.menu-item:last-child {
+  border-bottom: none;
+}
+
+.menu-text {
+  font-size: 30rpx;
+  color: #333;
 }
 
 .arrow {
-  color: #999;
+  color: #ccc;
+  font-size: 30rpx;
+}
+
+.action-area {
+  margin-top: 60rpx;
+}
+
+.btn-logout {
+  background-color: #fff;
+  color: #f56c6c;
+  font-size: 30rpx;
+  border: 1rpx solid #f5f5f5;
+}
+
+.btn-logout:active {
+  background-color: #f9f9f9;
 }

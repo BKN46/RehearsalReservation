@@ -1,62 +1,133 @@
 Page({
   data: {
-    campuses: [{id: 1, name: '学院路校区'}, {id: 2, name: '沙河校区'}],
-    campusIndex: 0,
-    list: [],
-    name: '',
-    contact: ''
+    campuses: [],
+    selectedCampusId: null,
+    managers: [],
+    showAddModal: false,
+    newManagerName: '',
+    newManagerContact: ''
   },
 
   onLoad() {
-    this.fetchList()
+    this.fetchCampuses()
   },
 
-  fetchList() {
+  fetchCampuses() {
     wx.cloud.callFunction({
       name: 'api',
-      data: { $url: 'admin/key-managers' },
+      data: { $url: 'reservation/campuses' },
       success: res => {
-        this.setData({ list: res.result })
+        const campuses = res.result
+        this.setData({ campuses })
+        if (campuses.length > 0) {
+          this.setData({ selectedCampusId: campuses[0].id })
+          this.fetchManagers()
+        }
       }
     })
   },
 
-  bindCampusChange(e) { this.setData({ campusIndex: e.detail.value }) },
-  inputChange(e) { this.setData({ [e.currentTarget.dataset.field]: e.detail.value }) },
-
-  add() {
-    const { campusIndex, name, contact, campuses } = this.data
-    if (!name || !contact) return
-
-    wx.cloud.callFunction({
-      name: 'api',
-      data: {
-        $url: 'admin/key-managers',
-        httpMethod: 'POST',
-        campus_id: campuses[campusIndex].id,
-        name,
-        contact
-      },
-      success: res => {
-        wx.showToast({ title: '添加成功' })
-        this.setData({ name: '', contact: '' })
-        this.fetchList()
-      }
-    })
-  },
-
-  remove(e) {
+  selectCampus(e) {
     const id = e.currentTarget.dataset.id
+    this.setData({ selectedCampusId: id })
+    this.fetchManagers()
+  },
+
+  fetchManagers() {
+    if (!this.data.selectedCampusId) return
+    
+    wx.showLoading({ title: '加载中...' })
     wx.cloud.callFunction({
       name: 'api',
       data: {
         $url: 'admin/key-managers',
-        httpMethod: 'DELETE',
-        id
+        campus_id: this.data.selectedCampusId
       },
       success: res => {
-        wx.showToast({ title: '删除成功' })
-        this.fetchList()
+        wx.hideLoading()
+        this.setData({ managers: res.result })
+      },
+      fail: err => {
+        wx.hideLoading()
+        console.error(err)
+      }
+    })
+  },
+
+  showAddModal() {
+    this.setData({ showAddModal: true })
+  },
+
+  hideAddModal() {
+    this.setData({ showAddModal: false })
+  },
+
+  preventBubble() {},
+
+  addManager() {
+    const { newManagerName, newManagerContact, selectedCampusId } = this.data
+    if (!newManagerName || !newManagerContact) {
+      wx.showToast({ title: '请填写完整', icon: 'none' })
+      return
+    }
+
+    wx.showLoading({ title: '添加中...' })
+    wx.cloud.callFunction({
+      name: 'api',
+      data: {
+        $url: 'admin/key-managers/add',
+        campus_id: selectedCampusId,
+        name: newManagerName,
+        contact: newManagerContact
+      },
+      success: res => {
+        wx.hideLoading()
+        if (res.result.error) {
+          wx.showToast({ title: res.result.error, icon: 'none' })
+        } else {
+          wx.showToast({ title: '添加成功', icon: 'success' })
+          this.setData({
+            showAddModal: false,
+            newManagerName: '',
+            newManagerContact: ''
+          })
+          this.fetchManagers()
+        }
+      },
+      fail: err => {
+        wx.hideLoading()
+        console.error(err)
+        wx.showToast({ title: '添加失败', icon: 'none' })
+      }
+    })
+  },
+
+  deleteManager(e) {
+    const id = e.currentTarget.dataset.id
+    wx.showModal({
+      title: '确认删除',
+      content: '确定要删除该管理员吗？',
+      success: (res) => {
+        if (res.confirm) {
+          wx.showLoading({ title: '删除中...' })
+          wx.cloud.callFunction({
+            name: 'api',
+            data: {
+              $url: 'admin/key-managers/delete',
+              id: id
+            },
+            success: res => {
+              wx.hideLoading()
+              wx.showToast({ title: '删除成功', icon: 'success' })
+              this.fetchManagers()
+            },
+            fail: err => {
+              wx.hideLoading()
+              console.error(err)
+              wx.showToast({ title: '删除失败', icon: 'none' })
+            }
+          })
+        }
       }
     })
   }

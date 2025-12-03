@@ -92,6 +92,22 @@ exports.main = async (event, context) => {
     ctx.body = { message: 'Registered', id: res._id }
   })
 
+  app.router('user/update', async (ctx, next) => {
+    const { name, phone, preferred_campus_id } = event
+    const data = {}
+    if (name) data.name = name
+    if (phone) data.phone = phone
+    if (preferred_campus_id) data.preferred_campus_id = parseInt(preferred_campus_id)
+    
+    await db.collection(USERS).where({
+      _openid: openid
+    }).update({
+      data: data
+    })
+    
+    ctx.body = { message: 'Updated' }
+  })
+
   // --- Reservation Routes ---
 
   app.router('reservation/campuses', async (ctx, next) => {

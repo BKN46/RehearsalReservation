@@ -1,28 +1,122 @@
-.form {
+.campus-tabs {
+  display: flex;
+  background: #fff;
   padding: 20rpx;
+  margin-bottom: 20rpx;
+  border-bottom: 1rpx solid #eee;
 }
-.form-title {
+
+.tab-item {
+  flex: 1;
+  text-align: center;
+  padding: 20rpx;
+  font-size: 30rpx;
+  color: #666;
+}
+
+.tab-item.active {
+  color: #333;
   font-weight: bold;
+  border-bottom: 4rpx solid #333;
+}
+
+.manager-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 30rpx;
   margin-bottom: 20rpx;
 }
-.picker-input {
-  border: 1rpx solid #ddd;
-  padding: 10rpx;
-  margin-bottom: 20rpx;
+
+.name {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
 }
-.input {
-  width: 100%;
-  border: 1rpx solid #ddd;
-  padding: 10rpx;
-  margin-bottom: 20rpx;
-  box-sizing: border-box;
-}
-.item {
-  padding: 20rpx;
-  margin-bottom: 20rpx;
-}
-.btn-warn {
-  background-color: #e64340;
-  color: white;
+
+.contact {
+  font-size: 26rpx;
+  color: #666;
   margin-top: 10rpx;
+}
+
+.btn-delete {
+  background: #fff;
+  color: #f56c6c;
+  border: 1rpx solid #f56c6c;
+  font-size: 24rpx;
+  margin: 0;
+}
+
+.btn-add {
+  position: fixed;
+  bottom: 60rpx;
+  right: 40rpx;
+  width: 100rpx;
+  height: 100rpx;
+  border-radius: 50%;
+  background: #333;
+  color: #fff;
+  font-size: 60rpx;
+  line-height: 100rpx;
+  text-align: center;
+  box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.2);
+  padding: 0;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+.modal-content {
+  width: 600rpx;
+  background: #fff;
+  border-radius: 12rpx;
+  padding: 40rpx;
+}
+
+.modal-title {
+  font-size: 36rpx;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 40rpx;
+}
+
+.modal-input {
+  border: 1rpx solid #eee;
+  height: 80rpx;
+  padding: 0 20rpx;
+  margin-bottom: 20rpx;
+  border-radius: 8rpx;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 40rpx;
+}
+
+.btn-cancel, .btn-confirm {
+  width: 45%;
+  font-size: 28rpx;
+}
+
+.btn-confirm {
+  background: #333;
+  color: #fff;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 100rpx 0;
+  color: #999;
 }

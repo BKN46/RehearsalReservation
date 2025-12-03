@@ -1,88 +1,32 @@
 <view class="container">
-  <view class="tabs">
-    <view class="tab {{currentTab === 0 ? 'active' : ''}}" bindtap="switchTab" data-idx="0">设备列表</view>
-    <view class="tab {{currentTab === 1 ? 'active' : ''}}" bindtap="switchTab" data-idx="1">我的借用</view>
-    <view class="tab {{currentTab === 2 ? 'active' : ''}}" bindtap="switchTab" data-idx="2">设备登记</view>
+  <view class="header-bar">
+    <text class="page-title">器材管理</text>
   </view>
 
-  <!-- Equipment List -->
-  <view class="content" wx:if="{{currentTab === 0}}">
-    <view class="filter-bar">
-      <picker bindchange="bindCampusChange" value="{{campusIndex}}" range="{{campuses}}" range-key="name">
-        <view class="picker">
-          校区: {{campuses[campusIndex].name || '全部'}}
+  <view class="equipment-list">
+    <view wx:for="{{equipmentList}}" wx:key="_id" class="equipment-card card">
+      <view class="equip-info">
+        <view class="equip-name">{{ item.name }}</view>
+        <view class="equip-status {{item.status !== 'normal' ? 'status-bad' : ''}}">
+          {{ item.status === 'normal' ? '状态良好' : '需维修' }}
         </view>
-      </picker>
-    </view>
-    
-    <view class="list">
-      <view wx:for="{{equipmentList}}" wx:key="_id" class="card item">
-        <view class="item-title">{{item.equipment_name}}</view>
-        <view class="item-info">类型: {{item.equipment_type}}</view>
-        <view class="item-info">位置: {{item.location}}</view>
-        <view class="item-info">联系人: {{item.contact}}</view>
-        <view class="item-info" wx:if="{{item.notes}}">备注: {{item.notes}}</view>
-        <button class="btn-mini btn-primary" bindtap="showBorrowDialog" data-item="{{item}}">借用</button>
+      </view>
+      
+      <view class="equip-actions">
+        <button 
+          class="btn-report" 
+          size="mini" 
+          bindtap="reportIssue"
+          data-item="{{item}}"
+          disabled="{{item.status !== 'normal'}}"
+        >
+          {{ item.status === 'normal' ? '报修' : '已报修' }}
+        </button>
       </view>
     </view>
   </view>
 
-  <!-- My Borrows -->
-  <view class="content" wx:if="{{currentTab === 1}}">
-    <!-- Need to implement my-borrows API or filter locally if not available -->
-    <!-- Assuming I can fetch my borrows or just list all borrows for now if API missing -->
-    <!-- I didn't implement 'equipment/my-borrows' in cloud function yet. I'll add it or use 'equipment/list' if it returns borrows? No, 'equipment/list' returns equipment items. 'equipment/borrow' creates a borrow record. I need 'equipment/my-borrows'. -->
-    <view class="empty-tip">暂未开放查询</view>
-  </view>
-
-  <!-- Register Equipment -->
-  <view class="content" wx:if="{{currentTab === 2}}">
-    <view class="form card">
-      <view class="form-item">
-        <text>设备名称</text>
-        <input placeholder="请输入设备名称" bindinput="inputChange" data-field="regName" />
-      </view>
-      <view class="form-item">
-        <text>设备类型</text>
-        <input placeholder="例如：吉他、音箱" bindinput="inputChange" data-field="regType" />
-      </view>
-      <view class="form-item">
-        <text>所属校区</text>
-        <picker bindchange="bindRegCampusChange" value="{{regCampusIndex}}" range="{{campuses}}" range-key="name">
-          <view class="picker-input">
-            {{campuses[regCampusIndex].name || '请选择'}}
-          </view>
-        </picker>
-      </view>
-      <view class="form-item">
-        <text>存放位置</text>
-        <input placeholder="请输入位置" bindinput="inputChange" data-field="regLocation" />
-      </view>
-      <view class="form-item">
-        <text>联系方式</text>
-        <input placeholder="请输入联系方式" bindinput="inputChange" data-field="regContact" />
-      </view>
-      <view class="form-item">
-        <text>备注</text>
-        <input placeholder="选填" bindinput="inputChange" data-field="regNotes" />
-      </view>
-      <view class="form-item">
-        <text>是否共享</text>
-        <switch checked="{{regShared}}" bindchange="switchChange" />
-      </view>
-      <button class="btn-primary" bindtap="registerEquipment">提交登记</button>
-    </view>
-  </view>
-
-  <!-- Borrow Dialog -->
-  <view class="modal" wx:if="{{showBorrowModal}}">
-    <view class="modal-content card">
-      <view class="modal-title">借用设备: {{selectedItem.equipment_name}}</view>
-      <input class="modal-input" placeholder="备注/用途" bindinput="inputChange" data-field="borrowNotes" />
-      <view class="modal-actions">
-        <button class="btn-mini" bindtap="closeBorrowDialog">取消</button>
-        <button class="btn-mini btn-primary" bindtap="confirmBorrow">确认</button>
-      </view>
-    </view>
+  <view wx:if="{{equipmentList.length === 0}}" class="empty-state">
+    <text>暂无器材信息</text>
   </view>
 </view>

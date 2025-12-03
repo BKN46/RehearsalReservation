@@ -1,15 +1,23 @@
 <view class="container">
-  <view class="menu-list">
-    <navigator url="/pages/admin/unavailable/index" class="menu-item card">
-      <text>不可预约时间管理</text>
-      <text class="arrow">></text>
-    </navigator>
-    
-    <navigator url="/pages/admin/key-managers/index" class="menu-item card">
-      <text>钥匙管理员管理</text>
-      <text class="arrow">></text>
-    </navigator>
+  <view class="header-bar">
+    <text class="page-title">管理员后台</text>
+  </view>
 
-    <!-- Add more admin functions as needed -->
+  <view class="menu-grid">
+    <view class="menu-card card" bindtap="navigateTo" data-url="/pages/admin/key-managers/index">
+      <view class="icon-box">
+        <text class="icon">🔑</text>
+      </view>
+      <text class="menu-title">钥匙管理员</text>
+      <text class="menu-desc">管理各校区钥匙负责人</text>
+    </view>
+
+    <view class="menu-card card" bindtap="navigateTo" data-url="/pages/admin/unavailable/index">
+      <view class="icon-box">
+        <text class="icon">🚫</text>
+      </view>
+      <text class="menu-title">不可用时间</text>
+      <text class="menu-desc">设置排练室关闭时间段</text>
+    </view>
   </view>
 </view>

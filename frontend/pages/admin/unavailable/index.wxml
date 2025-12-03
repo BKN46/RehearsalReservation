@@ -1,32 +1,81 @@
 <view class="container">
-  <view class="card form">
-    <view class="form-title">添加不可预约时间</view>
-    <picker bindchange="bindCampusChange" value="{{campusIndex}}" range="{{campuses}}" range-key="name">
-      <view class="picker-input">校区: {{campuses[campusIndex].name}}</view>
-    </picker>
-    <view class="row">
-      <input class="input-half" placeholder="开始时间(8-22)" type="number" bindinput="inputChange" data-field="startHour" />
-      <input class="input-half" placeholder="结束时间(8-22)" type="number" bindinput="inputChange" data-field="endHour" />
+  <view class="campus-tabs">
+    <view 
+      wx:for="{{campuses}}" 
+      wx:key="id" 
+      class="tab-item {{selectedCampusId === item.id ? 'active' : ''}}"
+      bindtap="selectCampus"
+      data-id="{{item.id}}"
+    >
+      {{ item.name }}
     </view>
-    <input class="input" placeholder="原因" bindinput="inputChange" data-field="reason" />
-    <view class="row">
-      <picker mode="date" bindchange="bindDateChange">
-        <view class="picker-input">日期: {{date || '不限'}}</view>
-      </picker>
-      <picker bindchange="bindDayChange" value="{{dayIndex}}" range="{{days}}">
-        <view class="picker-input">周几: {{days[dayIndex]}}</view>
-      </picker>
-    </view>
-    <button class="btn-primary" bindtap="add">添加</button>
   </view>
 
-  <view class="list">
-    <view wx:for="{{list}}" wx:key="_id" class="card item">
-      <view>{{item.campus_id == 1 ? '学院路' : '沙河'}}</view>
-      <view>{{item.date || (item.day_of_week !== null ? days[item.day_of_week] : '所有日期')}}</view>
-      <view>{{item.start_hour}}:00 - {{item.end_hour}}:00</view>
-      <view>原因: {{item.reason}}</view>
-      <button class="btn-mini btn-warn" bindtap="remove" data-id="{{item._id}}">删除</button>
+  <view class="rule-list">
+    <view wx:for="{{rules}}" wx:key="_id" class="rule-card card">
+      <view class="info">
+        <view class="rule-time">
+          {{ item.displayText }}
+        </view>
+        <view class="rule-hours">
+          {{ item.start_hour }}:00 - {{ item.end_hour }}:00
+        </view>
+      </view>
+      <button class="btn-delete" size="mini" bindtap="deleteRule" data-id="{{item._id}}">删除</button>
+    </view>
+    
+    <view wx:if="{{rules.length === 0}}" class="empty-state">
+      <text>暂无不可用设置</text>
+    </view>
+  </view>
+
+  <button class="btn-add" bindtap="showAddModal">+</button>
+
+  <!-- Add Modal -->
+  <view class="modal-overlay" wx:if="{{showAddModal}}" bindtap="hideAddModal">
+    <view class="modal-content" catchtap="preventBubble">
+      <view class="modal-title">添加不可用时间</view>
+      
+      <view class="form-group">
+        <text class="label">类型</text>
+        <radio-group bindchange="handleTypeChange" class="radio-group">
+          <label class="radio"><radio value="weekly" checked="{{addType === 'weekly'}}" />每周重复</label>
+          <label class="radio"><radio value="date" checked="{{addType === 'date'}}" />特定日期</label>
+        </radio-group>
+      </view>
+
+      <view class="form-group" wx:if="{{addType === 'weekly'}}">
+        <text class="label">星期</text>
+        <picker range="{{weekDays}}" range-key="name" bindchange="handleDayChange">
+          <view class="picker-view">
+            {{ selectedDay !== null ? weekDays[selectedDay].name : '请选择星期' }}
+          </view>
+        </picker>
+      </view>
+
+      <view class="form-group" wx:if="{{addType === 'date'}}">
+        <text class="label">日期</text>
+        <picker mode="date" bindchange="handleDateChange">
+          <view class="picker-view">
+            {{ selectedDate || '请选择日期' }}
+          </view>
+        </picker>
+      </view>
+
+      <view class="form-group">
+        <text class="label">开始时间</text>
+        <input class="input" type="number" model:value="{{startHour}}" placeholder="8-21" />
+      </view>
+
+      <view class="form-group">
+        <text class="label">结束时间</text>
+        <input class="input" type="number" model:value="{{endHour}}" placeholder="9-22" />
+      </view>
+
+      <view class="modal-actions">
+        <button class="btn-cancel" bindtap="hideAddModal">取消</button>
+        <button class="btn-confirm" bindtap="addRule">确定</button>
+      </view>
     </view>
   </view>
 </view>

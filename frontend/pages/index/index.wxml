@@ -1,39 +1,104 @@
 <view class="container">
   <!-- Campus Selector -->
   <view class="campus-tabs">
-    <view wx:for="{{campuses}}" wx:key="id" 
-          class="tab-item {{selectedCampusId == item.id ? 'active' : ''}}"
-          bindtap="selectCampus" data-id="{{item.id}}">
-      {{item.name}}
+    <view 
+      wx:for="{{campuses}}" 
+      wx:key="id" 
+      class="tab-item {{selectedCampusId === item.id ? 'active' : ''}}"
+      bindtap="selectCampus"
+      data-id="{{item.id}}"
+    >
+      {{ item.name }}
     </view>
   </view>
 
-  <!-- Date Selector -->
-  <view class="date-section">
-    <picker mode="date" value="{{date}}" start="{{startDate}}" end="{{endDate}}" bindchange="bindDateChange">
-      <view class="date-picker">
-        <text>当前日期: {{date}}</text>
-        <text class="picker-hint">点击切换</text>
+  <!-- Weekly Schedule -->
+  <scroll-view scroll-x scroll-y class="schedule-container">
+    <view class="schedule-table">
+      <!-- Header -->
+      <view class="schedule-header">
+        <view class="header-corner"></view>
+        <view class="header-days">
+          <view wx:for="{{weekDays}}" wx:key="date" class="header-day">
+            <view class="day-name">{{ item.dayName }}</view>
+            <view class="day-date">{{ item.dateText }}</view>
+          </view>
+        </view>
       </view>
-    </picker>
-  </view>
 
-  <!-- Time Slots -->
-  <scroll-view scroll-y class="slots-container">
-    <view class="slots-grid">
-      <view wx:for="{{timeSlots}}" wx:key="hour" 
-            class="slot-item {{item.status}} {{selectedSlot == item.hour ? 'selected' : ''}}"
-            bindtap="selectSlot" data-hour="{{item.hour}}">
-        <view class="slot-time">{{item.hour}}:00 - {{item.hour + 1}}:00</view>
-        <view class="slot-status">{{item.statusText}}</view>
+      <!-- Body -->
+      <view class="schedule-body">
+        <view wx:for="{{timeSlots}}" wx:key="*this" wx:for-item="hour" class="time-row">
+          <view class="time-label">{{ hour }}:00</view>
+          <view class="row-cells">
+            <view 
+              wx:for="{{weekDays}}" 
+              wx:key="date" 
+              wx:for-item="day"
+              class="schedule-cell {{hour === 12 || hour === 18 ? 'break-time' : ''}}"
+              bindtap="selectSlot"
+              data-date="{{day.date}}"
+              data-hour="{{hour}}"
+            >
+              <!-- Unavailable Block -->
+              <view wx:if="{{day.unavailable[hour]}}" class="unavailable-block">
+                <text class="unavailable-text">不可用</text>
+              </view>
+
+              <!-- Reservation Block -->
+              <view 
+                wx:elif="{{day.reservations[hour]}}" 
+                class="reservation-block {{day.reservations[hour].key_returned ? 'returned' : (day.reservations[hour].key_picked_up ? 'picked' : '')}}"
+              >
+                <text class="res-name">{{ day.reservations[hour].user_name }}</text>
+              </view>
+
+              <!-- Selected Block -->
+              <view 
+                wx:elif="{{selectedSlot && selectedSlot.date === day.date && selectedSlot.hour === hour}}" 
+                class="selected-block"
+              >
+                <text class="selected-text">已选</text>
+              </view>
+            </view>
+          </view>
+        </view>
       </view>
     </view>
   </scroll-view>
 
+  <!-- Weekly Quota -->
+  <view class="quota-card card" wx:if="{{userWeeklyHours !== null}}">
+    <text>本周已用: {{ userWeeklyHours }} / 剩余: {{ 6 - userWeeklyHours }} 小时</text>
+  </view>
+
+  <!-- Key Managers -->
+  <view class="section-card card">
+    <view class="section-title">钥匙管理员</view>
+    <view wx:if="{{keyManagers.length > 0}}">
+      <view wx:for="{{keyManagers}}" wx:key="_id" class="manager-item">
+        <text class="manager-name">{{ item.name }}</text>
+        <text class="manager-contact">{{ item.contact }}</text>
+      </view>
+    </view>
+    <view wx:else class="empty-text">暂无管理员</view>
+  </view>
+
+  <!-- Key Pickups -->
+  <view class="section-card card">
+    <view class="section-title">已领取钥匙</view>
+    <view wx:if="{{keyPickups.length > 0}}">
+      <view wx:for="{{keyPickups}}" wx:key="_id" class="pickup-item">
+        <text>{{ item.user_name }} - {{ item.date }} {{ item.start_hour }}:00-{{ item.end_hour }}:00</text>
+      </view>
+    </view>
+    <view wx:else class="empty-text">暂无领取记录</view>
+  </view>
+
   <!-- Booking Action -->
-  <view class="booking-bar" wx:if="{{selectedSlot !== null}}">
+  <view class="booking-bar" wx:if="{{selectedSlot}}">
     <view class="booking-info">
-      <text>已选: {{date}} {{selectedSlot}}:00-{{selectedSlot+1}}:00</text>
+      <text>已选: {{ selectedSlot.date }} {{ selectedSlot.hour }}:00-{{ selectedSlot.hour + 1 }}:00</text>
     </view>
     <button class="btn-confirm" bindtap="confirmBooking">确认预约</button>
   </view>

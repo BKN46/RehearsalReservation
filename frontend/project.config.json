@@ -1,8 +1,8 @@
 {
   "miniprogramRoot": "./",
   "projectname": "RehearsalReservation",
-  "description": "Rehearsal Reservation Mini Program",
-  "appid": "touristappid",
+  "description": "Rehearsal Reservation System",
+  "appid": "wx1234567890abcdef",
   "setting": {
     "urlCheck": true,
     "es6": true,
@@ -30,10 +30,7 @@
       "outputPath": ""
     },
     "enableEngineNative": false,
-    "bundle": false,
     "useIsolateContext": true,
-    "useCompilerModule": true,
-    "userConfirmedUseCompilerModuleSwitch": false,
     "userConfirmedBundleSwitch": false,
     "packNpmManually": false,
     "packNpmRelationList": [],
@@ -41,5 +38,13 @@
   },
   "compileType": "miniprogram",
   "libVersion": "2.19.4",
-  "cloudfunctionRoot": "../cloudfunction/"
+  "srcMiniprogramRoot": "",
+  "packOptions": {
+    "ignore": [],
+    "include": []
+  },
+  "editorSetting": {
+    "tabIndent": "insertSpaces",
+    "tabSize": 2
+  }
 }
